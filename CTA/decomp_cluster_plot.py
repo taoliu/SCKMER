@@ -141,7 +141,7 @@ def lda_decomp( t, n_components ):
 def lsa_decomp( t, n_components ):
     t0=time()
     print(f"Fit LSA with {n_components} components")
-    svd = TruncatedSVD(n_components, algorithm="ARPACK", random_state=1)
+    svd = TruncatedSVD(n_components, algorithm="arpack", random_state=1)
     normalizer = Normalizer(copy=False)
     lsa = make_pipeline(svd, normalizer).fit(t)
     t_lsa = lsa.transform(t)
