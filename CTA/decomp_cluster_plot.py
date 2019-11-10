@@ -28,8 +28,13 @@ def main ():
         sys.stderr.write( "   method: Decomposition method can only be: NMF, LDA, or LSA\n" )
         sys.stderr.write( "   n_components: Number of components for decomposition method\n" )
         sys.stderr.write( "   .npz: Sparse Matrix (uniq_id x features) of counts saved by Scipy in NPZ format.\n" )
+        sys.stderr.write( "         Please use raw count table and do not set the do-TF-IDF option if LDA is desired!\n" )        
         sys.stderr.write( "   known_labels_file: tab-delimited file with 1st column as uniq_id and 2nd column as known label\n" )
         sys.stderr.write( "   optional: if this argument is set as xxx, the count table will be transformed with TF/IDF and saved to a file named xxx. e.g., set it as tfidf.npz\n\n" )
+        sys.stderr.write( "             If using this option, make sure the <.npz> provided is the raw count table.\n" )
+        sys.stderr.write( "             If NMF is desired, IDF will be generated to replace TF without sublinear transformation.\n" )
+        sys.stderr.write( "             If LSA is desired, IDF will be generated to replace TF with sublinear transformation.\n" )
+        sys.stderr.write( "             If LDA is desired, please DO NOT set this option and just use raw count table in <.npz>!\n\n" )
         sys.stderr.write( "Note: if some backup files exist, decomposition or umap can be skipped:\n" )
         sys.stderr.write( "   transformed_{decomp_method}_{n_components}.sav: Backup file of decomposition transformed data\n" )
         sys.stderr.write( "   umap_embedding_{decomp_method}_{n_components}_cosine/euclidean_2.sav: Backup file of UMAP embedding data\n" )                
@@ -72,11 +77,11 @@ def main ():
     png_prefix = f"umap_fig_{decomp_method}_{n_components}_euclidean"
     plot_umap_2d ( e_euclidean, uniq_ids, labels_dict, png_prefix )
 
-def tfidf ( S, tfidf_fn ):
+def tfidf ( S, tfidf_fn, use_idf=True, sublinear_tf=False ):
     # re-weight data using TF/IDF transformer
     t0=time()
     print("TF/IDF transformation w smoothing")
-    t = sklearn.feature_extraction.text.TfidfTransformer(norm='l2', smooth_idf=True, use_idf=True, sublinear_tf=True).fit_transform(S)
+    t = sklearn.feature_extraction.text.TfidfTransformer(norm='l2', smooth_idf=True, use_idf=use_idf, sublinear_tf=sublinear_tf).fit_transform(S)
     scipy.sparse.save_npz( tfidf_fn, t, compressed=True )
     print("done in %0.3fs." % (time() - t0))
     print("TF/IDF transformed data saved to '{tfidf_fn}'")
@@ -106,15 +111,20 @@ def decomp( tfidf_filename, decomp_method, n_components, do_save_tfidf = False )
         # load TF/IDF reweighted count table
         # TF/IDF reweight
         t = scipy.sparse.load_npz( tfidf_filename )
-        if do_save_tfidf:
-            print( "TF/IDF transform count table" )
-            t = tfidf( t, do_save_tfidf )
         # decompose
         if decomp_method == "NMF":
+            if do_save_tfidf:
+                print( "TF/IDF transform count table for NMF, using IDF" )
+                t = tfidf( t, do_save_tfidf, use_idf=True, sublinear_tf=False )
             ( model, t_trans ) = nmf_decomp( t, n_components )
         elif decomp_method == "LDA":
+            if do_save_tfidf:
+                print( "TF will be used for LDA, no IDF transformation! do_save_tfidf ignored!" )
             ( model, t_trans ) = lda_decomp( t, n_components )
         elif decomp_method == "LSI" or decomp_method == "LSA":
+            if do_save_tfidf:
+                print( "TF/IDF transform count table for LSA, using IDF with log transformation" )
+                t = tfidf( t, do_save_tfidf, use_idf=True, sublinear_tf=True )            
             ( model, t_trans ) = lsa_decomp( t, n_components )
         else:
             exit(1)
