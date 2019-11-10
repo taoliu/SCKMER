@@ -10,9 +10,8 @@ matplotlib.use('agg')
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 import sklearn
-from sklearn.decomposition import NMF
-from sklearn.decomposition import LatentDirichletAllocation
-from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.decomposition import NMF, LatentDirichletAllocation, TruncatedSVD
 from sklearn.preprocessing import Normalizer
 from sklearn.pipeline import make_pipeline
 import hdbscan
@@ -108,6 +107,7 @@ def decomp( tfidf_filename, decomp_method, n_components, do_tfidf = False ):
         # TF/IDF reweight
         t = scipy.sparse.load_npz( tfidf_filename )
         if do_tfidf:
+            print( "TF/IDF transform count table" )
             t = tfidf( t )
         # decompose
         if decomp_method == "NMF":
