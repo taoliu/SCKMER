@@ -25,11 +25,12 @@ warnings.filterwarnings('ignore')
 def main ():
     if len( sys.argv ) < 5:
         sys.stderr.write( "Data Decomp + UMAP on a given sparse matrix (.npz)\n" )
-        sys.stderr.write( "need 4 parameter: <method> <n_components> <.npz> <known_labels_file>\n" )
+        sys.stderr.write( "need 4 parameter: <method> <n_components> <.npz> <known_labels_file> [do TF-IDF?]\n" )
         sys.stderr.write( "   method: Decomposition method can only be: NMF, LDA, or LSA\n" )
         sys.stderr.write( "   n_components: Number of components for decomposition method\n" )
         sys.stderr.write( "   .npz: Sparse Matrix (uniq_id x features) of counts saved by Scipy in NPZ format.\n" )
-        sys.stderr.write( "   known_labels_file: tab-delimited file with 1st column as uniq_id and 2nd column as known label\n\n" )
+        sys.stderr.write( "   known_labels_file: tab-delimited file with 1st column as uniq_id and 2nd column as known label\n" )
+        sys.stderr.write( "   optional: if this argument is set as \"yes\", the count table will be transformed with TF/IDF and saved to tfidf.npz file\n\n" )
         sys.stderr.write( "Note: if some backup files exist, decomposition or umap can be skipped:\n" )
         sys.stderr.write( "   transformed_{decomp_method}_{n_components}.sav: Backup file of decomposition transformed data\n" )
         sys.stderr.write( "   umap_embedding_{decomp_method}_{n_components}_cosine/euclidean_2.sav: Backup file of UMAP embedding data\n" )                
@@ -50,13 +51,16 @@ def main ():
     known_label_filename = sys.argv[4]
     if not os.path.isfile( known_label_filename ):
         sys.stderr.write(f"ERROR: known_label_filename file {known_label_filename} can't be found!\n")
-        exit(1)        
+        exit(1)
+    do_tfidf = False
+    if len(sys.argv) >= 6 and sys.argv[5] == "yes":
+        do_tfidf = True
 
     # load known labels dict
     uniq_ids, labels_dict = build_known_labels( known_label_filename )
-    
+
     # decomposition
-    t = decomp( tfidf_filename, decomp_method, n_components )
+    t = decomp( tfidf_filename, decomp_method, n_components, do_tfidf=do_tfidf )
 
     # umap
     e_cosine = run_umap( t, decomp_method, n_components, "cosine", 2 )
@@ -67,8 +71,18 @@ def main ():
     plot_umap_2d ( e_cosine, uniq_ids, labels_dict, png_prefix )
 
     png_prefix = f"umap_fig_{decomp_method}_{n_components}_euclidean"
-    plot_umap_2d ( e_euclidean, uniq_ids, labels_dict, png_prefix )    
+    plot_umap_2d ( e_euclidean, uniq_ids, labels_dict, png_prefix )
 
+def tfidf ( S ):
+    # re-weight data using TF/IDF transformer
+    t0=time()
+    print("TF/IDF transformation w smoothing")
+    t = sklearn.feature_extraction.text.TfidfTransformer(norm='l2', smooth_idf=True, use_idf=True, sublinear_tf=True).fit_transform(S)
+    scipy.sparse.save_npz( "tfidf.npz", t, compressed=True )
+    print("done in %0.3fs." % (time() - t0))
+    print("TF/IDF transformed data saved to 'tfidf.npz'")
+    return t
+    
 def build_known_labels ( label_file ):
     uniq_id_list = []
     labels_dict = {}
@@ -80,7 +94,7 @@ def build_known_labels ( label_file ):
             labels_dict[ uniq_id ] = label
     return ( uniq_id_list, labels_dict )
     
-def decomp( tfidf_filename, decomp_method, n_components ):
+def decomp( tfidf_filename, decomp_method, n_components, do_tfidf = False ):
     # check existing bk file first:
     tfidf_transformed_fn = f"transformed_{decomp_method}_{n_components}.sav"
     tfidf_model_fn = f"model_{decomp_method}_{n_components}.sav"    
@@ -92,7 +106,9 @@ def decomp( tfidf_filename, decomp_method, n_components ):
     else:
         # load TF/IDF reweighted count table
         # TF/IDF reweight
-        t = scipy.sparse.load_npz( tfidf_filename )        
+        t = scipy.sparse.load_npz( tfidf_filename )
+        if do_tfidf:
+            t = tfidf( t )
         # decompose
         if decomp_method == "NMF":
             ( model, t_trans ) = nmf_decomp( t, n_components )
@@ -102,7 +118,7 @@ def decomp( tfidf_filename, decomp_method, n_components ):
             ( model, t_trans ) = lsa_decomp( t, n_components )
         else:
             exit(1)
-        save_fit_trans_file( model, t_trans, tfidfmodel_fn, tfidf_transformed_fn )
+        save_fit_trans_file( model, t_trans, tfidf_model_fn, tfidf_transformed_fn )
         return t_trans
 
 def load_pickle_file( fn ):
