@@ -86,7 +86,7 @@ def decomp( tfidf_filename, decomp_method, n_components ):
     tfidf_model_fn = f"model_{decomp_method}_{n_components}.sav"    
     if os.path.isfile( tfidf_transformed_fn ):
         # load
-        print( "Load TF/IDF {decomp_method} transformed data" )
+        print( f"Load TF/IDF {decomp_method} transformed data" )
         t_trans = load_pickle_file( tfidf_transformed_fn )
         return t_trans
     else:
@@ -177,7 +177,7 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
 
     # umap + known labels
     print("UMAP w/ known labels")
-    classes = sorted(labels_dict.keys())
+    classes = sorted(list(set(labels_dict.values())))
     map_class = { x:i for ( i, x ) in enumerate( classes )}
     known_labels = [ map_class[labels_dict[x]] for x in uniq_ids ]
     cm = ListedColormap(sns.color_palette("Paired",24))
