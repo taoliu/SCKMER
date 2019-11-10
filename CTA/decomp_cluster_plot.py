@@ -37,19 +37,19 @@ def main ():
         exit(1)
     decomp_method = sys.argv[1]
     if not decomp_method in [ "NMF", "LDA", "LSA", "LSI" ]:
-        sys.stderr.write(f"ERROR: Please choose method from: NMF, LDA, LSA, or LSI. Your input: {decomp_method}")
+        sys.stderr.write(f"ERROR: Please choose method from: NMF, LDA, LSA, or LSI. Your input: {decomp_method}\n")
         exit(1)
     n_components = int( sys.argv[2] )
     if n_components < 1:
-        sys.stderr.write(f"ERROR: n_components must be larger than 0. Your input: {n_components}")
+        sys.stderr.write(f"ERROR: n_components must be larger than 0. Your input: {n_components}\n")
         exit(1)        
     tfidf_filename = sys.argv[3]
     if not os.path.isfile( tfidf_filename ):
-        sys.stderr.write(f"ERROR: .npz file {tfidf_filename} can't be found!")
+        sys.stderr.write(f"ERROR: .npz file {tfidf_filename} can't be found!\n")
         exit(1)        
     known_label_filename = sys.argv[4]
     if not os.path.isfile( known_label_filename ):
-        sys.stderr.write(f"ERROR: known_label_filename file {known_label_filename} can't be found!")
+        sys.stderr.write(f"ERROR: known_label_filename file {known_label_filename} can't be found!\n")
         exit(1)        
 
     # load known labels dict
@@ -59,14 +59,14 @@ def main ():
     t = decomp( tfidf_filename, decomp_method, n_components )
 
     # umap
-    e_cosine = run_umap( t, "cosine", 2 )
-    e_euclidean = run_umap( t, "euclidean", 2 )    
+    e_cosine = run_umap( t, decomp_method, n_components, "cosine", 2 )
+    e_euclidean = run_umap( t, decomp_method, n_components, "euclidean", 2 )    
 
     # plot
-    png_prefix = f"umap_fig_{decomp_method_name}_{n_components}_cosine"
+    png_prefix = f"umap_fig_{decomp_method}_{n_components}_cosine"
     plot_umap_2d ( e_cosine, uniq_ids, labels_dict, png_prefix )
 
-    png_prefix = f"umap_fig_{decomp_method_name}_{n_components}_euclidean"
+    png_prefix = f"umap_fig_{decomp_method}_{n_components}_euclidean"
     plot_umap_2d ( e_euclidean, uniq_ids, labels_dict, png_prefix )    
 
 def build_known_labels ( label_file ):
@@ -148,7 +148,7 @@ def lsa_decomp( tfidf_filename, n_components ):
     print("done in %0.3fs." % (time() - t0))
     return ( lsa, t_lsa )
 
-def run_umap ( data, dist_name, n_dimensions ):
+def run_umap ( data, decomp_method, n_components, dist_name, n_dimensions ):
     # check existing bk file first:
     umap_model_fn = f"umap_model_{decomp_method}_{n_components}_{dist_name}_{n_dimensions}.sav"
     umap_embedding_fn = f"umap_embedding_{decomp_method}_{n_components}_{dist_name}_{n_dimensions}.sav"
