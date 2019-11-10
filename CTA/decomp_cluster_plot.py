@@ -95,11 +95,13 @@ def decomp( tfidf_filename, decomp_method, n_components ):
         t = scipy.sparse.load_npz( tfidf_filename )        
         # decompose
         if decomp_method == "NMF":
-            model, t_trans = nmf_decomp( t, n_components )
+            ( model, t_trans ) = nmf_decomp( t, n_components )
         elif decomp_method == "LDA":
-            model, t_trans = lda_decomp( t, n_components )
+            ( model, t_trans ) = lda_decomp( t, n_components )
         elif decomp_method == "LSI" or decomp_method == "LSA":
-            model, t_trans = lsa_decomp( t, n_components )
+            ( model, t_trans ) = lsa_decomp( t, n_components )
+        else:
+            exit(1)
         save_fit_trans_file( model, t_trans, tfidfmodel_fn, tfidf_transformed_fn )
         return t_trans
 
