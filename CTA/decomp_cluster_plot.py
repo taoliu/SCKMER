@@ -24,8 +24,8 @@ warnings.filterwarnings('ignore')
 
 def main ():
     if len( sys.argv ) < 5:
-        sys.stderr.write( "Data Decomp + UMAP on a given sparse matrix (.npz)" )
-        sys.stderr.write( "need 4 parameter: %s <method> <n_components> <.npz> <known_labels_file>\n" % sys.argv[0] )
+        sys.stderr.write( "Data Decomp + UMAP on a given sparse matrix (.npz)\n" )
+        sys.stderr.write( "need 4 parameter: <method> <n_components> <.npz> <known_labels_file>\n" )
         sys.stderr.write( "   method: Decomposition method can only be: NMF, LDA, or LSA\n" )
         sys.stderr.write( "   n_components: Number of components for decomposition method\n" )
         sys.stderr.write( "   .npz: Sparse Matrix (uniq_id x features) of counts saved by Scipy in NPZ format.\n" )
