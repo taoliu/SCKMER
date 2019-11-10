@@ -94,11 +94,11 @@ def decomp( tfidf_filename, decomp_method, n_components ):
         # TF/IDF reweight
         t = scipy.sparse.load_npz( tfidf_filename )        
         # decompose
-        if decomp_method == "nmf":
+        if decomp_method == "NMF":
             model, t_trans = nmf_decomp( t, n_components )
-        elif decomp_method == "lda":
+        elif decomp_method == "LDA":
             model, t_trans = lda_decomp( t, n_components )
-        elif decomp_method == "lsa":
+        elif decomp_method == "LSI" or decomp_method == "LSA":
             model, t_trans = lsa_decomp( t, n_components )
         save_fit_trans_file( model, t_trans, tfidfmodel_fn, tfidf_transformed_fn )
         return t_trans
@@ -128,7 +128,7 @@ def nmf_decomp( t, n_components ):
 def lda_decomp( t, n_components ):
     t0=time()    
     print(f"Fit LDA with {n_components} components")
-    lda = LatentDirichletAllocation(n_components=n_components, max_iter=20, learning_method='online', learning_offset=10., random_state=0).fit(t)
+    lda = LatentDirichletAllocation(n_components=n_components, max_iter=20, learning_method='online', learning_offset=10., random_state=1).fit(t)
     print(f"Transform TD/IDF matrix with {n_components} components LDA")    
     t_lda = lda.transform(t)
     #score = lda.score(t)
@@ -139,7 +139,7 @@ def lda_decomp( t, n_components ):
 def lsa_decomp( tfidf_filename, n_components ):
     t0=time()
     print(f"Fit LSA with {n_components} components")
-    svd = TruncatedSVD(n_components)
+    svd = TruncatedSVD(n_components, algorithm="ARPACK", random_state=1)
     normalizer = Normalizer(copy=False)
     lsa = make_pipeline(svd, normalizer).fit(t)
     t_lsa = lsa.transform(t)
