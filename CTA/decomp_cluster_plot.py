@@ -138,7 +138,7 @@ def lda_decomp( t, n_components ):
     print("done in %0.3fs." % (time() - t0))
     return ( lda, t_lda )
 
-def lsa_decomp( tfidf_filename, n_components ):
+def lsa_decomp( t, n_components ):
     t0=time()
     print(f"Fit LSA with {n_components} components")
     svd = TruncatedSVD(n_components, algorithm="ARPACK", random_state=1)
