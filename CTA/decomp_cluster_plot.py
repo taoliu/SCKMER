@@ -154,11 +154,11 @@ def run_umap ( data, decomp_method, n_components, dist_name, n_dimensions ):
     umap_embedding_fn = f"umap_embedding_{decomp_method}_{n_components}_{dist_name}_{n_dimensions}.sav"
     if os.path.isfile( umap_embedding_fn ):
         # load
-        print( "Load UMAP {dist_name} embedding" )
+        print( f"Load UMAP {dist_name} embedding" )
         e = load_pickle_file( umap_embedding_fn )
         return e
     else:
-        print(f"UMAP ({dist_name})")
+        print( f"UMAP ({dist_name})" )
         m = umap.UMAP(metric=dist_name, random_state=40, n_neighbors=50, min_dist=0.0, n_components=n_dimensions).fit(data)
         e = m.transform(data)
         save_fit_trans_file( m, e, umap_model_fn, umap_embedding_fn )
@@ -191,7 +191,7 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
 
     # HDBSCAN
     print("UMAP w/ HDBSCAN clustering")
-    hdbscan_clusterer = hdbscan.HDBSCAN( min_samples=50, min_cluster_size=100 ).fit(embedding)
+    hdbscan_clusterer = hdbscan.HDBSCAN( min_samples=50, min_cluster_size=100 ).fit(e)
     #cm = ListedColormap(sns.color_palette("Paired",12))    
     color_palette = sns.color_palette('Paired', 12)
     cluster_colors = [color_palette[x] if x >= 0 else (0.5, 0.5, 0.5) for x in hdbscan_clusterer.labels_]
