@@ -222,7 +222,8 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     # HDBSCAN
     print("UMAP w/ HDBSCAN clustering")
     hdbscan_clusterer = hdbscan.HDBSCAN( min_samples=50, min_cluster_size=100 ).fit(e)
-    n_clusters = len( hdbscan_clusterer.labels_ )
+    clusters = set( hdbscan_clusterer.labels_ )
+    n_clusters = len( clusters )
     color_palette = sns.color_palette( 'bright', n_clusters - 1 ) # there is an unknown cluster which will be set in gray color
     cm = ListedColormap( color_palette )    
     cluster_colors = [color_palette[x] if x >= 0 else (0.5, 0.5, 0.5) for x in hdbscan_clusterer.labels_]
@@ -230,7 +231,7 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     sc = ax.scatter(e[:, 0], e[:, 1], s=80, c=cluster_colors, cmap=cm, alpha=0.4)
     cbar = fig.colorbar( sc, boundaries=np.arange( n_clusters + 1 )-0.5, alpha = 1 )
     cbar.set_ticks(np.arange( n_clusters ))
-    cbar.set_ticklabels( hdbscan_clusterer.labels_ )
+    cbar.set_ticklabels( clusters )
     plt.title('UMAP with HDBSCAN clustering labels')
     plt.savefig(f"{png_prefix}_w_hdbscan_labels.png", format="png")    
     
