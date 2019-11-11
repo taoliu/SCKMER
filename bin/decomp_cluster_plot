@@ -201,9 +201,10 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     print("UMAP w/o labels")
     # umap
     plt.figure(figsize=(16, 16))
-    plt.scatter(e[:, 0], e[:, 1], s=80, alpha=0.4)
+    plt.scatter(e[:, 0], e[:, 1], s=64, alpha=0.4)
     plt.savefig(f"{png_prefix}_wo_labels.png", format="png")
-
+    plt.close()
+    
     # umap + known labels
     print("UMAP w/ known labels")
     classes = sorted(list(set(labels_dict.values())))
@@ -212,28 +213,36 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     known_labels = [ map_class[labels_dict[x]] for x in uniq_ids ]
     cm = ListedColormap(sns.color_palette("bright",n_classes))
     fig, ax = plt.subplots(1, figsize=(20, 16))
-    sc = ax.scatter(e[:, 0], e[:, 1], s=80, c=known_labels, cmap=cm, alpha=0.4)
-    cbar = fig.colorbar(sc, boundaries=np.arange( n_classes + 1 )-0.5, alpha = 1)
-    cbar.set_ticks(np.arange( len(classes) ))
+    sc = ax.scatter(e[:, 0], e[:, 1], s=64, c=known_labels, cmap=cm, alpha=0.4)
+    cbar = fig.colorbar(sc)
+    cbar.set_ticks( [x+0.5 for x in np.arange( n_classes )] )
     cbar.set_ticklabels(classes)
+    cbar.set_alpha(1)
+    cbar.draw_all()
     plt.title('UMAP with known labels');
     plt.savefig(f"{png_prefix}_w_known_labels.png", format="png")
+    plt.close()
 
     # HDBSCAN
     print("UMAP w/ HDBSCAN clustering")
     hdbscan_clusterer = hdbscan.HDBSCAN( min_samples=50, min_cluster_size=100 ).fit(e)
-    clusters = set( hdbscan_clusterer.labels_ )
+    clusters = sorted(list(set( hdbscan_clusterer.labels_ )))
     n_clusters = len( clusters )
-    color_palette = sns.color_palette( 'bright', n_clusters - 1 ) # there is an unknown cluster which will be set in gray color
-    cm = ListedColormap( color_palette )    
-    cluster_colors = [color_palette[x] if x >= 0 else (0.5, 0.5, 0.5) for x in hdbscan_clusterer.labels_]
+    cluster_labels = [x if x >= 0 else n_clusters for x in hdbscan_clusterer.labels_] # set the -1 cluster to n_clusters
+    clusters = list(set(cluster_labels)) # update clusters names
+    color_palette = sns.color_palette( 'bright', n_clusters-1 ) # there is an unknown cluster which will be set in gray color
+    color_palette.append( (0.5, 0.5, 0.5) )                     # last cluster -1 is gray
+    cm = ListedColormap( color_palette )
     fig, ax = plt.subplots(1, figsize=(20, 16))
-    sc = ax.scatter(e[:, 0], e[:, 1], s=80, c=cluster_colors, cmap=cm, alpha=0.4)
-    cbar = fig.colorbar( sc, boundaries=np.arange( n_clusters + 1 )-0.5, alpha = 1 )
-    cbar.set_ticks(np.arange( n_clusters ))
-    cbar.set_ticklabels( clusters )
+    sc = ax.scatter(e[:, 0], e[:, 1], s=64, c=cluster_labels, cmap=cm, alpha=0.4)
+    cbar = fig.colorbar( sc )
+    cbar.set_ticks( [x+0.5 for x in np.arange( n_clusters )])
+    cbar.set_ticklabels( [str(x+1) if x<n_clusters else "unclassified" for x in clusters] )
+    cbar.set_alpha(1)
+    cbar.draw_all()
     plt.title('UMAP with HDBSCAN clustering labels')
-    plt.savefig(f"{png_prefix}_w_hdbscan_labels.png", format="png")    
+    plt.savefig(f"{png_prefix}_w_hdbscan_labels.png", format="png")
+    plt.close()
     
 if __name__ == '__main__':
     try:
