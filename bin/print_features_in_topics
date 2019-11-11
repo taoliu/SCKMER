@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+
+import scipy
+import sys
+import os
+import sklearn
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.decomposition import NMF, LatentDirichletAllocation, TruncatedSVD
+import pickle
+import warnings
+warnings.filterwarnings('ignore')
+
+def print_top_features(model, feature_names, n_top_features):
+    for topic_idx, topic in enumerate(model.components_):
+        message = "Topic #%d: " % topic_idx
+        message += " ".join([feature_names[i]
+                             for i in topic.argsort()[:-n_top_features - 1:-1]])
+        print(message)
+    print()
+
+def main ():
+    if len( sys.argv ) < 4:
+        sys.stderr.write( "Take the saved decomposition model and output the top features in the model components.\n" )
+        sys.stderr.write( "                   -- developmental script by Tao Liu\n\n")
+        sys.stderr.write( "need at least 3 parameters: <model.sav> <feature_names.txt> <n of top features> \n" )
+        sys.stderr.write( "     <feature_names.txt> should contain only 1 column of feature names, and a header line which will be skipped. \n\n" )        
+        exit(1)
+    model_fname = sys.argv[1]
+    if not os.path.isfile( model_fname ):
+        sys.stderr.write(f"ERROR: model file {model_fname} can't be found!\n")
+        exit(1)
+    feature_fname = sys.argv[2]
+    if not os.path.isfile( model_fname ):
+        sys.stderr.write(f"ERROR: feature file {feature_fname} can't be found!\n")
+        exit(1)        
+    n_top_features = int(sys.argv[3])
+
+    # read features
+    feature_names = []
+    with open( feature_fname, "r" ) as fhd:
+        fhd.readline()          # skip first line
+        for l in fhd:
+            feature_names.append( l.rstrip() )
+
+    # load model
+    with open( model_fname, "rb" ) as fhd:
+        model = pickle.load( fhd )
+
+    # print
+    print_top_features( model, feature_names, n_top_features )
+
