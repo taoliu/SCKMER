@@ -49,3 +49,9 @@ def main ():
     # print
     print_top_features( model, feature_names, n_top_features )
 
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupted me! ;-) Bye!\n")
+        sys.exit(0)
