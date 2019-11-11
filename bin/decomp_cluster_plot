@@ -196,11 +196,11 @@ def run_umap ( data, decomp_method, n_components, dist_name, n_dimensions ):
 def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     # plot
     plt.rcParams.update({'font.size': 22})
+    plt.style.use('fast')
 
     print("UMAP w/o labels")
     # umap
     plt.figure(figsize=(16, 16))
-    plt.style.use('fast')
     plt.scatter(e[:, 0], e[:, 1], s=80, alpha=0.4)
     plt.savefig(f"{png_prefix}_wo_labels.png", format="png")
 
@@ -210,26 +210,28 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     n_classes = len( classes )
     map_class = { x:i for ( i, x ) in enumerate( classes )}
     known_labels = [ map_class[labels_dict[x]] for x in uniq_ids ]
-    cm = ListedColormap(sns.color_palette("muted",n_classes))
+    cm = ListedColormap(sns.color_palette("bright",n_classes))
     fig, ax = plt.subplots(1, figsize=(20, 16))
     sc = ax.scatter(e[:, 0], e[:, 1], s=80, c=known_labels, cmap=cm, alpha=0.4)
     cbar = fig.colorbar(sc, boundaries=np.arange( n_classes + 1 )-0.5, alpha = 1)
     cbar.set_ticks(np.arange( len(classes) ))
     cbar.set_ticklabels(classes)
-    plt.title('UMAP with labels');
+    plt.title('UMAP with known labels');
     plt.savefig(f"{png_prefix}_w_known_labels.png", format="png")
 
     # HDBSCAN
     print("UMAP w/ HDBSCAN clustering")
     hdbscan_clusterer = hdbscan.HDBSCAN( min_samples=50, min_cluster_size=100 ).fit(e)
     n_clusters = len( hdbscan_clusterer.labels_ )
-    #cm = ListedColormap(sns.color_palette("Paired",12))    
-    color_palette = sns.color_palette( 'muted', n_clusters - 1 ) # there is an unknown cluster which will be set in gray color
+    color_palette = sns.color_palette( 'bright', n_clusters - 1 ) # there is an unknown cluster which will be set in gray color
+    cm = ListedColormap( color_palette )    
     cluster_colors = [color_palette[x] if x >= 0 else (0.5, 0.5, 0.5) for x in hdbscan_clusterer.labels_]
-    plt.figure(figsize=(16, 16))
-    plt.style.use('fast')
-    plt.scatter(e[:, 0], e[:, 1], s=80, c=cluster_colors, alpha=0.4)
-    plt.colorbar( boundaries=np.arange( n_clusters + 1 )-0.5, alpha = 1 )
+    fig, ax = plt.subplots(1, figsize=(20, 16))
+    sc = ax.scatter(e[:, 0], e[:, 1], s=80, c=cluster_colors, cmap=cm, alpha=0.4)
+    cbar = fig.colorbar( sc, boundaries=np.arange( n_clusters + 1 )-0.5, alpha = 1 )
+    cbar.set_ticks(np.arange( n_clusters ))
+    cbar.set_ticklabels( hdbscan_clusterer.labels_ )
+    plt.title('UMAP with HDBSCAN clustering labels')
     plt.savefig(f"{png_prefix}_w_hdbscan_labels.png", format="png")    
     
 if __name__ == '__main__':
