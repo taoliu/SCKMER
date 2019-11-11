@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+
+import scipy
+import numpy as np
+import sys
+import os
+from scipy.sparse import dok_matrix
+
+def main ():
+    if len( sys.argv ) < 5:
+        sys.stderr.write( "Build a Sparse Matrix from plain text tab-delimited Count Table. Save it in .npz\n" )
+        sys.stderr.write( "                   -- developmental script by Tao Liu\n\n")
+        sys.stderr.write( "need at least 2 parameters: <count_table.txt> <output.npz> <uniq_ids.txt> <features.txt> [transpose?]\n" )
+        sys.stderr.write( "   1. count_table.txt: A count table in tab-delimited plain text file.\n" )
+        sys.stderr.write( "      i)   The text file should contain a header line and the first column should also contain rownames;\n" )
+        sys.stderr.write( "      ii)  If the column names are for uniq_ids (e.g. patient, cell, or barcode), please specify 'yes' in [transpose?];\n" )
+        sys.stderr.write( "      iii) If the row names are for uniq_ids (e.g. patient, cell, or barcode), no need to set [transpose?].\n" )        
+        sys.stderr.write( "   2. output.npz: Sparse Matrix (uniq_id x features, csr format) of counts saved by Scipy in NPZ format.\n" )
+        sys.stderr.write( "   3. uniq_ids.txt: Since only values are stored in .npz, the uniq_ids will be saved in this file corresponding to rownames of the sparse matrix.\n" )
+        sys.stderr.write( "   4. features.txt: Since only values are stored in .npz, the feature names will be saved in this file corresponding to colnames of the sparse matrix.\n" )                
+        sys.stderr.write( "   5. optional: [transpose?] Set as 'yes' if the column names are for uniq_ids, and row names are for features.\n" )
+        sys.stderr.write( "\n" )
+        exit(1)
+    ct_fname = sys.argv[1]
+    if not os.path.isfile( ct_fname ):
+        sys.stderr.write(f"ERROR: plain text count table file {ct_fname} can't be found!\n")
+        exit(1)
+    csr_npz = sys.argv[2]
+    if os.path.isfile( csr_npz ):
+        sys.stderr.write(f"WARNING: output.npz file {csr_npz} exists and will be overwritten!\n")
+    uid_txt = sys.argv[3]
+    if os.path.isfile( uid_txt ):
+        sys.stderr.write(f"WARNING: uniq_ids.txt file {uid_txt} exists and will be overwritten!\n")
+    feat_txt = sys.argv[4]
+    if os.path.isfile( feat_txt ):
+        sys.stderr.write(f"WARNING: features.txt file {feat_txt} exists and will be overwritten!\n")        
+    do_transpose = False
+    if len(sys.argv) > 5 and sys.argv[5] == "yes":
+        do_transpose = True
+
+    with open( ct_fname, "r" ) as fhd:
+        n_r = -1
+        for l in fhd:
+            n_r += 1
+        fhd.seek(0)
+        header = fhd.readline()
+        colnames = header.rstrip().split("\t")
+        firstline = fhd.readline()
+        firstline_cols = firstline.rstrip().split("\t")
+        if len(firstline_cols) == len(colnames):
+            # the first column name will be discarded.
+            print("pop the first colname name")
+            colnames.pop(0)
+        n_c = len( colnames )
+        s = dok_matrix((n_r, n_c), dtype=np.int32)
+        rownames = [ firstline_cols[0], ]
+        s[ 0, ] = firstline_cols[1:]
+        # from 2nd
+        i = 0
+        for l in fhd:
+            fs = l.rstrip().split("\t")
+            rownames.append( fs[0] )
+            i += 1
+            s[ i, ] = fs[ 1: ]
+
+    if do_transpose:
+        s.transpose()
+
+    scipy.sparse.save_npz( csr_npz, s.tocsr(), compressed=True )
+    with open( uid_txt, "w" ) as fhd:
+        if do_transpose:
+            # colnames as uid
+            fhd.write( "\n".join( colnames ) )
+            fhd.write( "\n" )
+        else:
+            # rownames as uid
+            fhd.write( "\n".join( rownames ) )
+            fhd.write( "\n" )
+
+    with open( feat_txt, "w" ) as fhd:
+        if do_transpose:
+            # colnames as uid
+            fhd.write( "\n".join( rownames ) )
+            fhd.write( "\n" )
+        else:
+            # rownames as uid
+            fhd.write( "\n".join( colnames ) )
+            fhd.write( "\n" )                
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupted me! ;-) Bye!\n")
+        sys.exit(0)
