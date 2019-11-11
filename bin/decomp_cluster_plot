@@ -213,7 +213,7 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     cm = ListedColormap(sns.color_palette("muted",n_classes))
     fig, ax = plt.subplots(1, figsize=(20, 16))
     sc = ax.scatter(e[:, 0], e[:, 1], s=80, c=known_labels, cmap=cm, alpha=0.4)
-    cbar = fig.colorbar(sc, boundaries=np.arange( len(classes) + 1 )-0.5)
+    cbar = fig.colorbar(sc, boundaries=np.arange( n_classes + 1 )-0.5, alpha = 1)
     cbar.set_ticks(np.arange( len(classes) ))
     cbar.set_ticklabels(classes)
     plt.title('UMAP with labels');
@@ -229,7 +229,7 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     plt.figure(figsize=(16, 16))
     plt.style.use('fast')
     plt.scatter(e[:, 0], e[:, 1], s=80, c=cluster_colors, alpha=0.4)
-    #plt.colorbar()
+    plt.colorbar( boundaries=np.arange( n_clusters + 1 )-0.5, alpha = 1 )
     plt.savefig(f"{png_prefix}_w_hdbscan_labels.png", format="png")    
     
 if __name__ == '__main__':
