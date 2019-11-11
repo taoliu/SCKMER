@@ -175,7 +175,7 @@ def lsa_decomp( t, n_components ):
     explained_variance = svd.explained_variance_ratio_.sum()
     print("Explained variance of the SVD step: {}%".format(int(explained_variance * 100)))
     print("done in %0.3fs." % (time() - t0))
-    return ( lsa['svd'], t_lsa )
+    return ( lsa['truncatedsvd'], t_lsa )
 
 def run_umap ( data, decomp_method, n_components, dist_name, n_dimensions ):
     # check existing bk file first:
