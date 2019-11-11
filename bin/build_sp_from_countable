@@ -10,7 +10,7 @@ def main ():
     if len( sys.argv ) < 5:
         sys.stderr.write( "Build a Sparse Matrix from plain text tab-delimited Count Table. Save it in .npz\n" )
         sys.stderr.write( "                   -- developmental script by Tao Liu\n\n")
-        sys.stderr.write( "need at least 2 parameters: <count_table.txt> <output.npz> <uniq_ids.txt> <features.txt> [transpose?]\n" )
+        sys.stderr.write( "need at least 4 parameters: <count_table.txt> <output.npz> <uniq_ids.txt> <features.txt> [transpose?]\n" )
         sys.stderr.write( "   1. count_table.txt: A count table in tab-delimited plain text file.\n" )
         sys.stderr.write( "      i)   The text file should contain a header line and the first column should also contain rownames;\n" )
         sys.stderr.write( "      ii)  If the column names are for uniq_ids (e.g. patient, cell, or barcode), please specify 'yes' in [transpose?];\n" )

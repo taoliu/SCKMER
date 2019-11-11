@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Time-stamp: <2019-11-06 15:48:46 taoliu>
+# Time-stamp: <2019-11-11 12:48:19 taoliu>
 
 """Description: 
 
@@ -30,7 +30,7 @@ def main():
           url='http://github.com/taoliu/genericCTA/',
           package_dir={'CTA' : 'CTA'},
           packages=['CTA'],
-          scripts=['bin/decomp_cluster_plot', ],
+          scripts=['bin/decomp_cluster_plot', 'bin/build_sp_from_countable', 'bin/print_features_in_topics'],
           classifiers=[
               'Development Status :: 3 - Alpha',
               'Environment :: Console',
