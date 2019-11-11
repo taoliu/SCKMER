@@ -207,9 +207,10 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     # umap + known labels
     print("UMAP w/ known labels")
     classes = sorted(list(set(labels_dict.values())))
+    n_classes = len( classes )
     map_class = { x:i for ( i, x ) in enumerate( classes )}
     known_labels = [ map_class[labels_dict[x]] for x in uniq_ids ]
-    cm = ListedColormap(sns.color_palette("Paired",24))
+    cm = ListedColormap(sns.color_palette("muted",n_classes))
     fig, ax = plt.subplots(1, figsize=(20, 16))
     sc = ax.scatter(e[:, 0], e[:, 1], s=80, c=known_labels, cmap=cm, alpha=0.4)
     cbar = fig.colorbar(sc, boundaries=np.arange( len(classes) + 1 )-0.5)
@@ -221,8 +222,9 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     # HDBSCAN
     print("UMAP w/ HDBSCAN clustering")
     hdbscan_clusterer = hdbscan.HDBSCAN( min_samples=50, min_cluster_size=100 ).fit(e)
+    n_clusters = len( hdbscan_clusterer.labels_ )
     #cm = ListedColormap(sns.color_palette("Paired",12))    
-    color_palette = sns.color_palette('Paired', 12)
+    color_palette = sns.color_palette( 'muted', n_clusters - 1 ) # there is an unknown cluster which will be set in gray color
     cluster_colors = [color_palette[x] if x >= 0 else (0.5, 0.5, 0.5) for x in hdbscan_clusterer.labels_]
     plt.figure(figsize=(16, 16))
     plt.style.use('fast')
