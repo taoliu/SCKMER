@@ -39,25 +39,26 @@ def has_same_bp ( kmer, min_length = 8 ):
         return False
     
 
+def main():
+    with open("all.uniq.kmer.txt", "r") as fhd:
+    #with open("test.txt", "r") as fhd:
+        l = fhd.readline()
+        print (l.rstip())
+        for l in fhd:
+            kmer = l.rstrip()
+            if is_too_simple ( kmer, max_diff_bp = 2 ):
+                #print (f"{kmer} is too simple!")
+                continue 
+            elif is_simplerepeat ( kmer ):
+                #print (f"{kmer} contains simple repeats!")
+                continue
+            elif has_same_bp ( kmer ):
+                #print (f"{kmer} contains same bps!")
+                continue            
+            else:
+                #print (f"{kmer} pass test!")
+                print( kmer )
     
-with open("all.uniq.kmer.txt", "r") as fhd:
-#with open("test.txt", "r") as fhd:
-    l = fhd.readline()
-    print (l.rstip())
-    for l in fhd:
-        kmer = l.rstrip()
-        if is_too_simple ( kmer, max_diff_bp = 2 ):
-            #print (f"{kmer} is too simple!")
-            continue 
-        elif is_simplerepeat ( kmer ):
-            #print (f"{kmer} contains simple repeats!")
-            continue
-        elif has_same_bp ( kmer ):
-            #print (f"{kmer} contains same bps!")
-            continue            
-        else:
-            #print (f"{kmer} pass test!")
-            print( kmer )
 
 
 

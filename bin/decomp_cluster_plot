@@ -138,8 +138,8 @@ def load_pickle_file( fn ):
     return d
 
 def save_fit_trans_file( model, t, model_fn, trans_fn ):
-    #with open( model_fn, "wb" ) as fhd:
-    #    pickle.dump( model, fhd )
+    with open( model_fn, "wb" ) as fhd:
+        pickle.dump( model, fhd )
     with open( trans_fn, "wb" ) as fhd:
         pickle.dump( t, fhd )        
     return
@@ -175,7 +175,7 @@ def lsa_decomp( t, n_components ):
     explained_variance = svd.explained_variance_ratio_.sum()
     print("Explained variance of the SVD step: {}%".format(int(explained_variance * 100)))
     print("done in %0.3fs." % (time() - t0))
-    return ( lsa, t_lsa )
+    return ( lsa['svd'], t_lsa )
 
 def run_umap ( data, decomp_method, n_components, dist_name, n_dimensions ):
     # check existing bk file first:
@@ -202,6 +202,8 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     # umap
     plt.figure(figsize=(16, 16))
     plt.scatter(e[:, 0], e[:, 1], s=48, alpha=0.4)
+    plt.xlabel("UMAP-1")
+    plt.ylabel("UMAP-2")    
     plt.savefig(f"{png_prefix}_wo_labels.png", format="png")
     plt.close()
     
@@ -220,12 +222,14 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     cbar.set_alpha(1)
     cbar.draw_all()
     plt.title('UMAP with known labels');
+    plt.xlabel("UMAP-1")
+    plt.ylabel("UMAP-2")    
     plt.savefig(f"{png_prefix}_w_known_labels.png", format="png")
     plt.close()
 
     # HDBSCAN
     print("UMAP w/ HDBSCAN clustering")
-    hdbscan_clusterer = hdbscan.HDBSCAN( min_samples=50, min_cluster_size=100 ).fit(e)
+    hdbscan_clusterer = hdbscan.HDBSCAN( min_samples=20, min_cluster_size=50 ).fit(e)
     clusters = sorted(list(set( hdbscan_clusterer.labels_ )))
     n_clusters = len( clusters )
     cluster_labels = [x if x >= 0 else n_clusters for x in hdbscan_clusterer.labels_] # set the -1 cluster to n_clusters
@@ -241,6 +245,8 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     cbar.set_alpha(1)
     cbar.draw_all()
     plt.title('UMAP with HDBSCAN clustering labels')
+    plt.xlabel("UMAP-1")
+    plt.ylabel("UMAP-2")    
     plt.savefig(f"{png_prefix}_w_hdbscan_labels.png", format="png")
     plt.close()
     
