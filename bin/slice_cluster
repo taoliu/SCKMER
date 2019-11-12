@@ -1,0 +1,256 @@
+#!/usr/bin/env python3
+
+import scipy
+import sys
+import os
+import umap
+import numpy as np
+import matplotlib
+matplotlib.use('agg')
+from matplotlib.colors import ListedColormap
+import matplotlib.pyplot as plt
+import sklearn
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.decomposition import NMF, LatentDirichletAllocation, TruncatedSVD
+from sklearn.preprocessing import Normalizer
+from sklearn.pipeline import make_pipeline
+import hdbscan
+import seaborn as sns
+from time import time
+import pickle
+import warnings
+warnings.filterwarnings('ignore')
+from collections import Counter
+
+def main ():
+    if len( sys.argv ) < 5:
+        sys.stderr.write( "Count table conversion + decomposition + UMAP + DBscan clustering, given a sparse matrix (.npz)\n" )
+        sys.stderr.write( "                   -- developmental script by Tao Liu\n\n")
+        sys.stderr.write( "need at least 4 parameters: <method> <n_components> <.npz> <known_labels_file> [do TF-IDF and save?]\n" )
+        sys.stderr.write( "   1. method: Decomposition method can only be: NMF, LDA, or LSA\n" )
+        sys.stderr.write( "   2. n_components: Number of components for decomposition method\n" )
+        sys.stderr.write( "   3. .npz: Sparse Matrix (uniq_id x features) of counts saved by Scipy in NPZ format.\n" )
+        sys.stderr.write( "            Please use raw count table and do not set the do-TF-IDF option if LDA is desired!\n" )        
+        sys.stderr.write( "   4. known_labels_file: tab-delimited file with 1st column as uniq_id and 2nd column as known label\n" )
+        sys.stderr.write( "   5. optional: if this argument is set as xxx, the count table will be transformed with TF/IDF and saved to a file named xxx. e.g., set it as tfidf.npz\n" )
+        sys.stderr.write( "             i)   If using this option, make sure the <.npz> provided is the raw count table.\n" )
+        sys.stderr.write( "             ii)  If NMF is desired, IDF will be generated to replace TF without sublinear transformation.\n" )
+        sys.stderr.write( "             iii) If LSA is desired, IDF will be generated to replace TF with sublinear transformation.\n" )
+        sys.stderr.write( "             iv)  If LDA is desired, please DO NOT set this option and just use raw count table in <.npz>!\n\n" )
+        sys.stderr.write( "Note: if some backup files exist, decomposition or umap can be skipped:\n" )
+        sys.stderr.write( "      i)  transformed_{decomp_method}_{n_components}.sav: Backup file of decomposition transformed data\n" )
+        sys.stderr.write( "      ii) umap_embedding_{decomp_method}_{n_components}_cosine/euclidean_2.sav: Backup file of UMAP embedding data\n" )                
+        sys.stderr.write( "\n" )
+        exit(1)
+    decomp_method = sys.argv[1]
+    if not decomp_method in [ "NMF", "LDA", "LSA", "LSI" ]:
+        sys.stderr.write(f"ERROR: Please choose method from: NMF, LDA, LSA, or LSI. Your input: {decomp_method}\n")
+        exit(1)
+    n_components = int( sys.argv[2] )
+    if n_components < 1:
+        sys.stderr.write(f"ERROR: n_components must be larger than 0. Your input: {n_components}\n")
+        exit(1)        
+    tfidf_filename = sys.argv[3]
+    if not os.path.isfile( tfidf_filename ):
+        sys.stderr.write(f"ERROR: .npz file {tfidf_filename} can't be found!\n")
+        exit(1)        
+    known_label_filename = sys.argv[4]
+    if not os.path.isfile( known_label_filename ):
+        sys.stderr.write(f"ERROR: known_label_filename file {known_label_filename} can't be found!\n")
+        exit(1)
+    do_save_tfidf = False
+    if len(sys.argv) >= 6:
+        do_save_tfidf = sys.argv[5]       #a filename we will save the TFIDF to
+
+    # load known labels dict
+    uniq_ids, labels_dict = build_known_labels( known_label_filename )
+
+    # load tfidf or tf npz
+    t = scipy.sparse.load_npz( tfidf_filename )
+    
+    # umap
+    #e_cosine = run_umap( t, decomp_method, n_components, "cosine", 2 )
+    e_euclidean = run_umap( t, decomp_method, n_components, "euclidean", 2 )    
+
+    # plot
+    #png_prefix = f"umap_fig_{decomp_method}_{n_components}_cosine"
+    #plot_umap_2d ( e_cosine, uniq_ids, labels_dict, png_prefix )
+
+    png_prefix = f"umap_fig_{decomp_method}_{n_components}_euclidean"
+    plot_umap_2d ( e_euclidean, uniq_ids, labels_dict, png_prefix, t )
+
+def tfidf ( S, tfidf_fn, use_idf=True, sublinear_tf=False ):
+    # re-weight data using TF/IDF transformer
+    t0=time()
+    print("TF/IDF transformation w smoothing")
+    t = sklearn.feature_extraction.text.TfidfTransformer(norm='l2', smooth_idf=True, use_idf=use_idf, sublinear_tf=sublinear_tf).fit_transform(S)
+    scipy.sparse.save_npz( tfidf_fn, t, compressed=True )
+    print("done in %0.3fs." % (time() - t0))
+    print(f"TF/IDF transformed data saved to '{tfidf_fn}'")
+    return t
+    
+def build_known_labels ( label_file ):
+    uniq_id_list = []
+    labels_dict = {}
+    with open( label_file,"r" ) as label_fhd:
+        label_fhd.readline()      # skip first line
+        for l in label_fhd:
+            (uniq_id, label) = l.rstrip().split("\t")
+            uniq_id_list.append( uniq_id )
+            labels_dict[ uniq_id ] = label
+    return ( uniq_id_list, labels_dict )
+    
+def decomp( tfidf_filename, decomp_method, n_components, do_save_tfidf = False ):
+    # check existing bk file first:
+    tfidf_transformed_fn = f"transformed_{decomp_method}_{n_components}.sav"
+    tfidf_model_fn = f"model_{decomp_method}_{n_components}.sav"    
+    if os.path.isfile( tfidf_transformed_fn ):
+        # load
+        print( f"Load TF/IDF {decomp_method} transformed data" )
+        t_trans = load_pickle_file( tfidf_transformed_fn )
+        return t_trans
+    else:
+        # load TF/IDF reweighted count table
+        # TF/IDF reweight
+        t = scipy.sparse.load_npz( tfidf_filename )
+        # decompose
+        if decomp_method == "NMF":
+            if do_save_tfidf:
+                print( "TF/IDF transform count table for NMF, using IDF" )
+                t = tfidf( t, do_save_tfidf, use_idf=True, sublinear_tf=False )
+            ( model, t_trans ) = nmf_decomp( t, n_components )
+        elif decomp_method == "LDA":
+            if do_save_tfidf:
+                print( "TF will be used for LDA, no IDF transformation! do_save_tfidf ignored!" )
+            ( model, t_trans ) = lda_decomp( t, n_components )
+        elif decomp_method == "LSI" or decomp_method == "LSA":
+            if do_save_tfidf:
+                print( "TF/IDF transform count table for LSA, using IDF with log transformation" )
+                t = tfidf( t, do_save_tfidf, use_idf=True, sublinear_tf=True )            
+            ( model, t_trans ) = lsa_decomp( t, n_components )
+        else:
+            exit(1)
+        save_fit_trans_file( model, t_trans, tfidf_model_fn, tfidf_transformed_fn )
+        return t_trans
+
+def load_pickle_file( fn ):
+    with open( fn, "rb" ) as fhd:
+        d = pickle.load( fhd )
+    return d
+
+def save_fit_trans_file( model, t, model_fn, trans_fn ):
+    with open( model_fn, "wb" ) as fhd:
+        pickle.dump( model, fhd )
+    with open( trans_fn, "wb" ) as fhd:
+        pickle.dump( t, fhd )        
+    return
+
+def nmf_decomp( t, n_components ):
+    t0=time()
+    print(f"Fit NMF with {n_components} components")
+    nmf = NMF(n_components=n_components, init="nndsvd",random_state=1, alpha=.1, l1_ratio=.5, max_iter=100).fit( t )
+    print(f"Transform TD/IDF matrix with {n_components} components NMF")
+    t_nmf = nmf.transform(t)
+    #print("Reconstruction error: %.3f" % nmf.reconstruction_err_ )
+    print("done in %0.3fs." % (time() - t0))
+    return ( nmf, t_nmf )
+
+def lda_decomp( t, n_components ):
+    t0=time()    
+    print(f"Fit LDA with {n_components} components")
+    lda = LatentDirichletAllocation(n_components=n_components, max_iter=20, learning_method='online', learning_offset=10., random_state=1).fit(t)
+    print(f"Transform TD/IDF matrix with {n_components} components LDA")    
+    t_lda = lda.transform(t)
+    #score = lda.score(t)
+    #print("Approximate likelihood score: %.3f" % score)
+    print("done in %0.3fs." % (time() - t0))
+    return ( lda, t_lda )
+
+def lsa_decomp( t, n_components ):
+    t0=time()
+    print(f"Fit LSA with {n_components} components")
+    svd = TruncatedSVD(n_components, algorithm="arpack", random_state=1)
+    normalizer = Normalizer(copy=False)
+    lsa = make_pipeline(svd, normalizer).fit(t)
+    t_lsa = lsa.transform(t)
+    explained_variance = svd.explained_variance_ratio_.sum()
+    print("Explained variance of the SVD step: {}%".format(int(explained_variance * 100)))
+    print("done in %0.3fs." % (time() - t0))
+    return ( lsa['truncatedsvd'], t_lsa )
+
+def run_umap ( data, decomp_method, n_components, dist_name, n_dimensions ):
+    # check existing bk file first:
+    umap_model_fn = f"umap_model_{decomp_method}_{n_components}_{dist_name}_{n_dimensions}.sav"
+    umap_embedding_fn = f"umap_embedding_{decomp_method}_{n_components}_{dist_name}_{n_dimensions}.sav"
+    if os.path.isfile( umap_embedding_fn ):
+        # load
+        print( f"Load UMAP {dist_name} embedding" )
+        e = load_pickle_file( umap_embedding_fn )
+        return e
+    else:
+        print( f"UMAP ({dist_name})" )
+        m = umap.UMAP(metric=dist_name, random_state=40, n_neighbors=50, min_dist=0.0, n_components=n_dimensions).fit(data)
+        e = m.transform(data)
+        save_fit_trans_file( m, e, umap_model_fn, umap_embedding_fn )
+        return e
+
+def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix, t ):
+    # plot
+    plt.rcParams.update({'font.size': 22})
+    plt.style.use('fast')
+
+    # HDBSCAN
+    print("UMAP w/ HDBSCAN clustering")
+    hdbscan_clusterer = hdbscan.HDBSCAN( min_samples=50, min_cluster_size=100 ).fit(e)
+    clusters = sorted(list(set( hdbscan_clusterer.labels_ )))
+    #print( clusters )
+    n_clusters = len( clusters )
+    #print( n_clusters )
+    cluster_labels = [x if x >= 0 else n_clusters for x in hdbscan_clusterer.labels_] # set the -1 cluster to n_clusters
+    clusters = list(set(cluster_labels)) # update clusters names
+    #print( clusters )
+    #color_palette = sns.color_palette( 'bright', n_clusters-1 ) # there is an unknown cluster which will be set in gray color
+    #color_palette.append( (0.5, 0.5, 0.5) )                     # last cluster -1 is gray
+    #cm = ListedColormap( color_palette )
+    #fig, ax = plt.subplots(1, figsize=(20, 16))
+    #sc = ax.scatter(e[:, 0], e[:, 1], s=48, c=cluster_labels, cmap=cm, alpha=0.4)
+    #cbar = fig.colorbar( sc )
+    #cbar.set_ticks( [x+0.5 for x in np.arange( n_clusters )])
+    #cbar.set_ticklabels( [str(x+1) if x<n_clusters else "unclassified" for x in clusters] )
+    #cbar.set_alpha(1)
+    #cbar.draw_all()
+    #plt.title('UMAP with HDBSCAN clustering labels')
+    #plt.xlabel("UMAP-1")
+    #plt.ylabel("UMAP-2")    
+    #plt.savefig(f"{png_prefix}_w_hdbscan_labels.png", format="png")
+    #plt.close()
+
+    print( n_clusters )
+    for c in clusters:
+        if c == n_clusters:
+            # the last cluster is for unclassified
+            continue
+        barcode_fn = f"barcode_labels_cluster_{c}.txt"
+        npz_fn = f"count_table_cluster_{c}.npz"
+        print( f"Cluster: {c}" )
+        this_cluster_indices = [ i for i, x in enumerate(cluster_labels) if x == c ]
+        this_cluster_barcodes = np.array(uniq_ids)[ this_cluster_indices ]
+        this_cluster_labels = [ labels_dict[b] for b in this_cluster_barcodes ]
+        this_cluster_counter = Counter( this_cluster_labels )
+        this_cluster_sp = t[ this_cluster_indices, ]
+        #print( this_cluster_barcodes[:10] )
+        print( this_cluster_counter )
+        #print( this_cluster_sp )
+        with open( barcode_fn, "w" ) as fhd:
+            fhd.write( "barcode\tlabel\n" )
+            for i in range( len(this_cluster_barcodes) ):
+                fhd.write( f"{this_cluster_barcodes[i]}\t{this_cluster_labels[i]}\n")
+        scipy.sparse.save_npz( npz_fn, this_cluster_sp, compressed=True)
+        
+    
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupted me! ;-) Bye!\n")
+        sys.exit(0)
