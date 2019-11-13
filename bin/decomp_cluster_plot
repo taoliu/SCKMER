@@ -180,8 +180,8 @@ def load_pickle_file( fn ):
     return d
 
 def save_fit_trans_file( model, t, model_fn, trans_fn ):
-    #with open( model_fn, "wb" ) as fhd:
-    #    pickle.dump( model, fhd )
+    with open( model_fn, "wb" ) as fhd:
+        pickle.dump( model, fhd )
     with open( trans_fn, "wb" ) as fhd:
         pickle.dump( t, fhd )
     return
