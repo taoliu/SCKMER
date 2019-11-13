@@ -14,6 +14,7 @@ from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.decomposition import NMF, LatentDirichletAllocation, TruncatedSVD
 from sklearn.preprocessing import Normalizer
 from sklearn.pipeline import make_pipeline
+from sklearn.feature_selection import VarianceThreshold
 import hdbscan
 import seaborn as sns
 from time import time
@@ -62,7 +63,8 @@ def main ():
         do_save_tfidf = sys.argv[5]       #a filename we will save the TFIDF to
 
     # ---- other parameter ---
-
+    feature_selection_variance_cutoff = 0.000002
+    
     umap_n_neighbors = 5
     umap_min_dist = 0.0
     dbscan_min_samples = 5
@@ -78,8 +80,8 @@ def main ():
     uniq_ids, labels_dict = build_known_labels( known_label_filename )
 
     # decomposition
-    t = decomp( tfidf_filename, decomp_method, n_components, do_save_tfidf=do_save_tfidf )
-
+    t = decomp( tfidf_filename, decomp_method, n_components, do_save_tfidf=do_save_tfidf, variance_threshold=feature_selection_variance_cutoff)
+    
     # umap
     #e_cosine = run_umap( t, decomp_method, n_components, "cosine", 2, n_neighbors=umap_n_neighbors, min_dist=umap_min_dist  )
     e_euclidean = run_umap( t, decomp_method, n_components, "euclidean", 2, n_neighbors=umap_n_neighbors, min_dist=umap_min_dist  )    
@@ -123,7 +125,7 @@ def build_known_labels ( label_file ):
             labels_dict[ uniq_id ] = label
     return ( uniq_id_list, labels_dict )
     
-def decomp( tfidf_filename, decomp_method, n_components, do_save_tfidf = False ):
+def decomp( tfidf_filename, decomp_method, n_components, do_save_tfidf = False, variance_threshold=0.000002 ):
     # check existing bk file first:
     tfidf_transformed_fn = f"transformed_{decomp_method}_{n_components}.sav"
     tfidf_model_fn = f"model_{decomp_method}_{n_components}.sav"    
@@ -141,15 +143,31 @@ def decomp( tfidf_filename, decomp_method, n_components, do_save_tfidf = False )
             if do_save_tfidf:
                 print( "TF/IDF transform count table for NMF, using IDF" )
                 t = tfidf( t, do_save_tfidf, use_idf=True, sublinear_tf=False )
+            # feature selection
+            print("Feature selection based on variance")
+            orig_n = t.shape[1]
+            t = VarianceThreshold(variance_threshold).fit_transform(t)
+            curr_n = t.shape[1]
+            print(f"Selected {curr_n} features out of {orig_n} with variance cutoff {variance_threshold}")
             ( model, t_trans ) = nmf_decomp( t, n_components )
         elif decomp_method == "LDA":
             if do_save_tfidf:
                 print( "TF will be used for LDA, no IDF transformation! do_save_tfidf ignored!" )
+            print("Feature selection based on variance")
+            orig_n = t.shape[1]
+            t = VarianceThreshold(variance_threshold).fit_transform(t)
+            curr_n = t.shape[1]
+            print(f"Selected {curr_n} features out of {orig_n} with variance cutoff {variance_threshold}")       
             ( model, t_trans ) = lda_decomp( t, n_components )
         elif decomp_method == "LSI" or decomp_method == "LSA":
             if do_save_tfidf:
                 print( "TF/IDF transform count table for LSA, using IDF with log transformation" )
-                t = tfidf( t, do_save_tfidf, use_idf=True, sublinear_tf=True )            
+                t = tfidf( t, do_save_tfidf, use_idf=True, sublinear_tf=True )
+            print("Feature selection based on variance")
+            orig_n = t.shape[1]
+            t = VarianceThreshold(variance_threshold).fit_transform(t)
+            curr_n = t.shape[1]
+            print(f"Selected {curr_n} features out of {orig_n} with variance cutoff {variance_threshold}")
             ( model, t_trans ) = lsa_decomp( t, n_components )
         else:
             exit(1)
@@ -162,8 +180,8 @@ def load_pickle_file( fn ):
     return d
 
 def save_fit_trans_file( model, t, model_fn, trans_fn ):
-    with open( model_fn, "wb" ) as fhd:
-        pickle.dump( model, fhd )
+    #with open( model_fn, "wb" ) as fhd:
+    #    pickle.dump( model, fhd )
     with open( trans_fn, "wb" ) as fhd:
         pickle.dump( t, fhd )
     return
