@@ -61,6 +61,19 @@ def main ():
     if len(sys.argv) >= 6:
         do_save_tfidf = sys.argv[5]       #a filename we will save the TFIDF to
 
+    # ---- other parameter ---
+
+    umap_n_neighbors = 5
+    umap_min_dist = 0.0
+    dbscan_min_samples = 5
+    dbscan_min_cluster_size = 200
+
+    spectral_n_neighbors = 10
+
+    clustering_method = "dbscan" # or "spectral"
+    # ------------------
+
+        
     # load known labels dict
     uniq_ids, labels_dict = build_known_labels( known_label_filename )
 
@@ -68,15 +81,26 @@ def main ():
     t = decomp( tfidf_filename, decomp_method, n_components, do_save_tfidf=do_save_tfidf )
 
     # umap
-    e_cosine = run_umap( t, decomp_method, n_components, "cosine", 2 )
-    e_euclidean = run_umap( t, decomp_method, n_components, "euclidean", 2 )    
+    #e_cosine = run_umap( t, decomp_method, n_components, "cosine", 2, n_neighbors=umap_n_neighbors, min_dist=umap_min_dist  )
+    e_euclidean = run_umap( t, decomp_method, n_components, "euclidean", 2, n_neighbors=umap_n_neighbors, min_dist=umap_min_dist  )    
 
+    # clustering on umap 2D data. May provide an option to do clustering on the decomposed data.
+    if clustering_method == "dbscan":
+        print("HDBSCAN clustering")
+        clusterer = hdbscan.HDBSCAN( min_samples=dbscan_min_samples, min_cluster_size=dbscan_min_cluster_size ).fit( e_euclidean )
+    elif clustering_method == "spectral":
+        print("Spectral clustering")
+        clusterer = SpectralClustering( affinity="nearest_neighbors", n_neighbors = spectral_n_neighbors, random_state = 0 ).fit( e_euclidean )
+    else:
+        print(f"Wrong clustering method assignment: {clustering_method}")
+        exit(1)
+    
     # plot
-    png_prefix = f"umap_fig_{decomp_method}_{n_components}_cosine"
-    plot_umap_2d ( e_cosine, uniq_ids, labels_dict, png_prefix )
+    #png_prefix = f"umap_fig_{decomp_method}_{n_components}_cosine"
+    #plot_umap_2d ( e_cosine, uniq_ids, labels_dict, png_prefix, clusterer )
 
     png_prefix = f"umap_fig_{decomp_method}_{n_components}_euclidean"
-    plot_umap_2d ( e_euclidean, uniq_ids, labels_dict, png_prefix )
+    plot_umap_2d ( e_euclidean, uniq_ids, labels_dict, png_prefix, clusterer )
 
 def tfidf ( S, tfidf_fn, use_idf=True, sublinear_tf=False ):
     # re-weight data using TF/IDF transformer
@@ -141,7 +165,7 @@ def save_fit_trans_file( model, t, model_fn, trans_fn ):
     with open( model_fn, "wb" ) as fhd:
         pickle.dump( model, fhd )
     with open( trans_fn, "wb" ) as fhd:
-        pickle.dump( t, fhd )        
+        pickle.dump( t, fhd )
     return
 
 def nmf_decomp( t, n_components ):
@@ -154,10 +178,10 @@ def nmf_decomp( t, n_components ):
     print("done in %0.3fs." % (time() - t0))
     return ( nmf, t_nmf )
 
-def lda_decomp( t, n_components ):
+def lda_decomp( t, n_components, learning_method="online", learning_offset=10.0, max_iter=20, random_state=1 ):
     t0=time()    
     print(f"Fit LDA with {n_components} components")
-    lda = LatentDirichletAllocation(n_components=n_components, max_iter=20, learning_method='online', learning_offset=10., random_state=1).fit(t)
+    lda = LatentDirichletAllocation(n_components=n_components, max_iter=max_iter, learning_method=learning_method, learning_offset=learning_offset, random_state=random_state).fit(t)
     print(f"Transform TD/IDF matrix with {n_components} components LDA")    
     t_lda = lda.transform(t)
     score = lda.score(t)
@@ -167,10 +191,10 @@ def lda_decomp( t, n_components ):
     print("done in %0.3fs." % (time() - t0))
     return ( lda, t_lda )
 
-def lsa_decomp( t, n_components ):
+def lsa_decomp( t, n_components, algorithm="arpack", random_state=1 ):
     t0=time()
     print(f"Fit LSA with {n_components} components")
-    svd = TruncatedSVD(n_components, algorithm="arpack", random_state=1)
+    svd = TruncatedSVD(n_components, algorithm=algorithm, random_state=random_state)
     normalizer = Normalizer(copy=False)
     lsa = make_pipeline(svd, normalizer).fit(t)
     t_lsa = lsa.transform(t)
@@ -195,15 +219,15 @@ def run_umap ( data, decomp_method, n_components, dist_name, n_dimensions, n_nei
         save_fit_trans_file( m, e, umap_model_fn, umap_embedding_fn )
         return e
 
-def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
+def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix, clusterer ):
     # plot
     plt.rcParams.update({'font.size': 22})
     plt.style.use('fast')
 
     print("UMAP w/o labels")
     # umap
-    plt.figure(figsize=(16, 16))
-    plt.scatter(e[:, 0], e[:, 1], s=48, alpha=0.4)
+    plt.figure(figsize=(12, 12))
+    plt.scatter(e[:, 0], e[:, 1], s=80, alpha=0.2)
     plt.xlabel("UMAP-1")
     plt.ylabel("UMAP-2")    
     plt.savefig(f"{png_prefix}_wo_labels.png", format="png")
@@ -216,8 +240,8 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     map_class = { x:i for ( i, x ) in enumerate( classes )}
     known_labels = [ map_class[labels_dict[x]] for x in uniq_ids ]
     cm = ListedColormap(sns.color_palette("bright",n_classes))
-    fig, ax = plt.subplots(1, figsize=(20, 16))
-    sc = ax.scatter(e[:, 0], e[:, 1], s=48, c=known_labels, cmap=cm, alpha=0.4)
+    fig, ax = plt.subplots(1, figsize=(15, 12))
+    sc = ax.scatter(e[:, 0], e[:, 1], s=80, c=known_labels, cmap=cm, alpha=0.2)
     cbar = fig.colorbar(sc)
     cbar.set_ticks( np.arange( n_classes ) )
     cbar.set_ticklabels(classes)
@@ -230,26 +254,25 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix ):
     plt.close()
 
     # HDBSCAN
-    print("UMAP w/ HDBSCAN clustering")
-    hdbscan_clusterer = hdbscan.HDBSCAN( min_samples=20, min_cluster_size=50 ).fit(e)
-    clusters = sorted(list(set( hdbscan_clusterer.labels_ )))
+    print("UMAP w/ clustering labels")    
+    clusters = sorted(list(set( clusterer.labels_ )))
     n_clusters = len( clusters )
-    cluster_labels = [x if x >= 0 else n_clusters for x in hdbscan_clusterer.labels_] # set the -1 cluster to n_clusters
+    cluster_labels = [x if x >= 0 else n_clusters for x in clusterer.labels_] # set the -1 cluster to n_clusters
     clusters = list(set(cluster_labels)) # update clusters names
     color_palette = sns.color_palette( 'bright', n_clusters-1 ) # there is an unknown cluster which will be set in gray color
     color_palette.append( (0.5, 0.5, 0.5) )                     # last cluster -1 is gray
     cm = ListedColormap( color_palette )
-    fig, ax = plt.subplots(1, figsize=(20, 16))
-    sc = ax.scatter(e[:, 0], e[:, 1], s=48, c=cluster_labels, cmap=cm, alpha=0.4)
+    fig, ax = plt.subplots(1, figsize=(15, 12))
+    sc = ax.scatter(e[:, 0], e[:, 1], s=80, c=cluster_labels, cmap=cm, alpha=0.2)
     cbar = fig.colorbar( sc )
     cbar.set_ticks( [x+0.5 for x in np.arange( n_clusters )])
     cbar.set_ticklabels( [str(x+1) if x<n_clusters else "unclassified" for x in clusters] )
     cbar.set_alpha(1)
     cbar.draw_all()
-    plt.title('UMAP with HDBSCAN clustering labels')
+    plt.title('UMAP with clustering labels')
     plt.xlabel("UMAP-1")
     plt.ylabel("UMAP-2")    
-    plt.savefig(f"{png_prefix}_w_hdbscan_labels.png", format="png")
+    plt.savefig(f"{png_prefix}_w_clustering_labels.png", format="png")
     plt.close()
     
 if __name__ == '__main__':
