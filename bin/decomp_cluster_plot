@@ -125,6 +125,7 @@ def save_clusterer ( uniq_ids, labels_dict, clusterer, fn_prefix ):
         this_cluster_barcodes = np.array(uniq_ids)[ this_cluster_indices ]
         this_cluster_labels = [ labels_dict[b] for b in this_cluster_barcodes ]
         this_cluster_counter = Counter( this_cluster_labels )
+        print ( this_cluster_counter )
         with open( barcode_fn, "w" ) as fhd:
             fhd.write( "barcode\tlabel\n" )
             for i in range( len(this_cluster_barcodes) ):
