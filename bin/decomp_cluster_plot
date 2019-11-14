@@ -68,14 +68,14 @@ def main ():
     # ---- other parameter ---
     feature_selection_variance_cutoff = 0.0000005
     
-    umap_n_neighbors = 5
+    umap_n_neighbors = 10
     umap_min_dist = 0.0
     dbscan_min_samples = 5
     dbscan_min_cluster_size = 200
 
-    spectral_n_neighbors = 10
+    spectral_n_neighbors = 5
 
-    clustering_method = "spectral" #"dbscan" or "spectral"
+    clustering_method = "dbscan" #"dbscan" or "spectral"
     # ------------------
 
         
@@ -305,7 +305,7 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix, clusterer ):
     cluster_labels = [x if x >= 0 else n_clusters for x in clusterer.labels_] # set the -1 cluster to n_clusters
     clusters = list(set(cluster_labels)) # update clusters names
     color_palette = sns.color_palette( 'bright', n_clusters-1 ) # there is an unknown cluster which will be set in gray color
-    color_palette.append( (0.5, 0.5, 0.5) )                     # last cluster -1 is gray
+    color_palette.append( (0.9, 0.9, 0.9) )                     # last cluster -1 is almost white
     cm = ListedColormap( color_palette )
     fig, ax = plt.subplots(1, figsize=(15, 12))
     sc = ax.scatter(e[:, 0], e[:, 1], s=12, c=cluster_labels, cmap=cm, alpha=0.2)
