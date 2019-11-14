@@ -268,7 +268,7 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix, clusterer ):
     print("UMAP w/o labels")
     # umap
     plt.figure(figsize=(12, 12))
-    plt.scatter(e[:, 0], e[:, 1], s=80, alpha=0.2)
+    plt.scatter(e[:, 0], e[:, 1], s=12, alpha=0.2)
     plt.xlabel("UMAP-1")
     plt.ylabel("UMAP-2")    
     plt.savefig(f"{png_prefix}_wo_labels.png", format="png")
@@ -282,7 +282,7 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix, clusterer ):
     known_labels = [ map_class[labels_dict[x]] for x in uniq_ids ]
     cm = ListedColormap(sns.color_palette("bright",n_classes))
     fig, ax = plt.subplots(1, figsize=(15, 12))
-    sc = ax.scatter(e[:, 0], e[:, 1], s=80, c=known_labels, cmap=cm, alpha=0.2)
+    sc = ax.scatter(e[:, 0], e[:, 1], s=12, c=known_labels, cmap=cm, alpha=0.2)
     cbar = fig.colorbar(sc)
     cbar.set_ticks( np.arange( n_classes ) )
     cbar.set_ticklabels(classes)
@@ -304,7 +304,7 @@ def plot_umap_2d ( e, uniq_ids, labels_dict, png_prefix, clusterer ):
     color_palette.append( (0.5, 0.5, 0.5) )                     # last cluster -1 is gray
     cm = ListedColormap( color_palette )
     fig, ax = plt.subplots(1, figsize=(15, 12))
-    sc = ax.scatter(e[:, 0], e[:, 1], s=80, c=cluster_labels, cmap=cm, alpha=0.2)
+    sc = ax.scatter(e[:, 0], e[:, 1], s=12, c=cluster_labels, cmap=cm, alpha=0.2)
     cbar = fig.colorbar( sc )
     cbar.set_ticks( [x+0.5 for x in np.arange( n_clusters )])
     cbar.set_ticklabels( [str(x+1) if x<n_clusters else "unclassified" for x in clusters] )
