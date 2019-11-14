@@ -63,7 +63,7 @@ def main ():
         do_save_tfidf = sys.argv[5]       #a filename we will save the TFIDF to
 
     # ---- other parameter ---
-    feature_selection_variance_cutoff = 0.000002
+    feature_selection_variance_cutoff = 0.0000005
     
     umap_n_neighbors = 5
     umap_min_dist = 0.0
@@ -72,7 +72,7 @@ def main ():
 
     spectral_n_neighbors = 10
 
-    clustering_method = "dbscan" # or "spectral"
+    clustering_method = "spectral" #"dbscan" or "spectral"
     # ------------------
 
         
@@ -96,6 +96,9 @@ def main ():
     else:
         print(f"Wrong clustering method assignment: {clustering_method}")
         exit(1)
+
+    # save clustering results
+    save_clusterer ( uniq_ids, labels_dict, clusterer, f"{decomp_method}_{n_components}_{clustering_method}" )
     
     # plot
     #png_prefix = f"umap_fig_{decomp_method}_{n_components}_cosine"
@@ -104,6 +107,26 @@ def main ():
     png_prefix = f"umap_fig_{decomp_method}_{n_components}_euclidean"
     plot_umap_2d ( e_euclidean, uniq_ids, labels_dict, png_prefix, clusterer )
 
+def save_clusterer ( uniq_ids, labels_dict, clusterer, fn_prefix ):
+    clusters = sorted(list(set( clusterer.labels_ )))
+    n_clusters = len( clusters )
+    cluster_labels = [x if x >= 0 else n_clusters for x in clusterer.labels_] # set the -1 cluster to n_clusters
+    clusters = list(set(cluster_labels)) # update clusters names
+    for c in clusters:
+        if c == n_clusters:
+            # the last cluster is for unclassified
+            continue
+        barcode_fn = f"{fn_prefix}_barcode_labels_cluster_{c}.txt"
+        print( f"Cluster: {c}" )
+        this_cluster_indices = [ i for i, x in enumerate(cluster_labels) if x == c ]
+        this_cluster_barcodes = np.array(uniq_ids)[ this_cluster_indices ]
+        this_cluster_labels = [ labels_dict[b] for b in this_cluster_barcodes ]
+        this_cluster_counter = Counter( this_cluster_labels )
+        with open( barcode_fn, "w" ) as fhd:
+            fhd.write( "barcode\tlabel\n" )
+            for i in range( len(this_cluster_barcodes) ):
+                fhd.write( f"{this_cluster_barcodes[i]}\t{this_cluster_labels[i]}\n")
+    
 def tfidf ( S, tfidf_fn, use_idf=True, sublinear_tf=False ):
     # re-weight data using TF/IDF transformer
     t0=time()
