@@ -1,0 +1,242 @@
+#!/usr/bin/env python3
+
+import argparse as ap
+import sys
+import os
+import logging
+
+import warnings
+warnings.filterwarnings('ignore')
+
+SCKMER_VERSION="0.0.1"
+
+
+# ------------------------------------
+# Main function
+# ------------------------------------
+def main():
+    """The Main function/pipeline for single-cell kmer analyzer.
+
+    Currently, we have:
+
+    1. anndata: to compile anndata object from count table, barcode and kmer files
+    2. tfidf: to convert count in an anndata object to TF/IDF
+    3. decomp: to decompose count or TF/IDF table with LSA/LSI, NMF, or LDA
+    4. umap: to reduce dimension with UMAP
+    5. cluster: to cluster the barcodes/cells
+    6. diff: to find differential kmers between clusters
+    7. view: to compile results and view on UCSC cell browser
+    """
+    # Parse options...
+    argparser = prepare_argparser()
+    args = argparser.parse_args()
+
+    subcommand  = args.subcommand
+
+    # logging object
+    logging.basicConfig(level=(4-args.verbose)*10,
+                        format='%(levelname)-5s @ %(asctime)s: %(message)s ',
+                        datefmt='%a, %d %b %Y %H:%M:%S',
+                        stream=sys.stderr,
+                        filemode="w")
+    
+    args.error   = logging.critical
+    args.warn    = logging.warning
+    args.debug   = logging.debug
+    args.info    = logging.info
+                
+    if subcommand == "anndata":
+        # to compile anndata object from count table, barcode and kmer files
+        from SCKMER.anndata_cmd import run
+        run( args)
+    elif subcommand == "filter":
+        # filter cells and kmers with n_counts, n_kmers, n_cells
+        from SCKMER.filter_cmd import run
+        run( args )
+    elif subcommand == "tfidf":
+        # to convert count in an anndata object to TF/IDF
+        from SCKMER.tfidf_cmd import run
+        run( args )
+    elif subcommand == "decomp":
+        # to decompose count or TF/IDF table with LSA/LSI, NMF, or LDA
+        from SCKMER.decomp_cmd import run
+        run( args )
+    elif subcommand == "umap":
+        # to reduce dimension with UMAP
+        from SCKMER.umap_cmd import run
+        run( args )
+    elif subcommand == "cluster":
+        # to cluster the barcodes/cells
+        from SCKMER.cluster_cmd import run
+        run( args )
+    elif subcommand == "diff":
+        # to find differential kmers between clusters
+        from SCKMER.diff_cmd import run
+        run( args )
+    elif subcommand == "view":
+        # to compile results and view on UCSC cell browser
+        from SCKMER.view_cmd import run
+        run( args )        
+            
+def prepare_argparser ():
+    """Prepare optparser object. New options will be added in this
+    function first.
+    
+    """
+    description = "%(prog)s -- Analyze single-cell data with k-mers methods."
+    epilog = "For command line options of each command, type: %(prog)s COMMAND -h"
+    # top-level parser
+    argparser = ap.ArgumentParser( description = description, epilog = epilog ) #, usage = usage )
+    argparser.add_argument("--version", action="version", version="%(prog)s "+ SCKMER_VERSION)
+    subparsers = argparser.add_subparsers( dest = 'subcommand' ) #help="sub-command help")
+    subparsers.required = True
+
+    # command for 'anndata'
+    add_anndata_parser( subparsers )
+
+    # command for 'anndata'
+    add_filter_parser( subparsers )    
+
+    # command for 'tfidf'
+    add_tfidf_parser( subparsers )
+
+    # command for 'decomp'
+    add_decomp_parser( subparsers )
+
+    # command for 'umap'
+    add_umap_parser( subparsers )
+
+    # command for 'cluster'
+    add_cluster_parser( subparsers )
+
+    # command for 'diff'
+    add_diff_parser( subparsers )
+
+    # command for 'view'
+    add_view_parser( subparsers )    
+
+    return argparser
+
+def add_output_group ( parser ):
+    parser.add_argument( "-o", "--ofile", dest = "ofile", type = str, required = True,
+                         help = "Output file name." )
+    parser.add_argument( "--verbose", dest = "verbose", type = int, default = 2,
+                         help = "Set verbose level of runtime message. 0: only show critical message, 1: show additional warning message, 2: show process information, 3: show debug messages. DEFAULT:2" )
+
+def add_anndata_parser( subparsers ):
+    argparser_anndata = subparsers.add_parser("anndata", help="Compile an AnnData object from a sparseMatrix (npz) file for count table, the barcode and the k-mer names files.")
+    
+    # group for input files
+    group_input = argparser_anndata.add_argument_group( "Input files arguments" )
+    group_input.add_argument( "-c", "--count-table", dest = "cfile", type = str, required = True,
+                              help = "Count table file with sparse matrix in NPZ format (scipy sparseMatrix). REQUIRED." )
+    group_input.add_argument( "-b", "--barcode-file", dest = "bfile", type = str, required = True,
+                              help = "Barcode file with annotations. # of rows must be the same as # of rows in count table file. REQUIRED." )
+    group_input.add_argument( "-k", "--kmer-file", dest = "kfile", type = str, required = True,
+                              help = "k-mer file with annotations. # of rows must be the same as # of columns in count table file. REQUIRED." )
+    
+    # group for output files
+    group_output = argparser_anndata.add_argument_group( "Output arguments" )
+    add_output_group( group_output )
+    return
+
+def add_filter_parser( subparsers ):
+    argparser_filter = subparsers.add_parser("filter", help="Filter cells and kmers according to number of kmers or counts per gene, or number of cells per kmer. (more filtering will be added later)")
+
+    # group for input files
+    group_input = argparser_filter.add_argument_group( "Input files arguments" )
+    group_input.add_argument( "-a", "--anndata", dest = "afile", type = str, required = True,
+                              help = "An .h5ad file with count table stored in AnnData object. REQUIRED." )
+
+    # group for filtering options
+    group_options = argparser_filter.add_argument_group( "Options for filtering" )
+    group_options.add_argument( "-K", "--max-nkmers", dest = "max_kmers", type = int,
+                                help = "Maximum number of kmers from a cell/barcode (default:NA)")
+    group_options.add_argument( "-C", "--max-ncounts", dest = "max_counts", type = int,
+                                help = "Maximum number of counts from a cell/barcode (default:NA)")
+    group_options.add_argument( "-E", "--max-ncells", dest = "max_cells", type = int,
+                                help = "Minimum number of cells that a kmer can be found (default:NA)")    
+    group_options.add_argument( "-k", "--min-nkmers", dest = "min_kmers", type = int, default = 0,
+                                help = "Minimum number of kmers from a cell/barcode (default:0)")
+    group_options.add_argument( "-c", "--min-ncounts", dest = "min_counts", type = int, default = 0,
+                                help = "Minimum number of counts from a cell/barcode (default:0)")
+    group_options.add_argument( "-e", "--min-ncells", dest = "min_cells", type = int, default = 0,
+                                help = "Minimum number of cells that a kmer can be found (default:0)")
+    # group for output files
+    group_output = argparser_filter.add_argument_group( "Output arguments" )
+    add_output_group( group_output )  
+    return
+
+
+def add_tfidf_parser( subparsers ):
+    argparser_tfidf = subparsers.add_parser("tfidf", help="Convert the count data in an AnnData object with TF/IDF. Use this if you plan to decompose data using NMF or LSI/LSA method. If you plan to use LDA, do not use this command.")
+
+    # group for input files
+    group_input = argparser_tfidf.add_argument_group( "Input files arguments" )
+    group_input.add_argument( "-a", "--anndata", dest = "afile", type = str, required = True,
+                              help = "An .h5ad file with count table stored in AnnData object. REQUIRED." )
+
+    # group for TF/IDF options
+    group_options = argparser_tfidf.add_argument_group( "Options for TF/IDF conversion" )
+    group_options.add_argument( "-N", "--norm", dest = "norm", type = str, default = "l2",
+                                choices = ("l1", "l2"),
+                                help = "TF/IDF norm method can be either ‘l1’ or ‘l2’ (default=’l2’). In most of cases, please keep the default. Each output obs/barcode/cell will have unit norm. ‘l2’: Sum of squares of vector elements is 1. The cosine similarity between two vectors is their dot product when l2 norm has been applied. ‘l1’: Sum of absolute values of vector elements is 1. ")
+
+    #group_options.add_argument( "--smooth-idf", dest = "smooth_idf", action = "store_true", default = False,
+    #                            help = "Smooth IDF weights by adding one to document frequencies, as if an extra document was seen containing every term in the collection exactly once. Prevents zero divisions. (default: False). " )
+    #group_options.add_argument( "-I", "--use-idf", dest = "use_idf", action = "store_true", default = False,
+    #                            help = "Enable inverse-document-frequency (IDF) reweighting. (default: False). If you are preparing the data for decomposition method LSA/LSI or NMF, set this option. If you are preparing the data for LDA which requires count table, do not set this option.")
+    group_options.add_argument( "-S", "--sublinear-tf", dest = "sublinear_tf", action = "store_true", default = False,
+                                help = "Apply sublinear tf scaling, i.e. replace tf with 1 + log(tf). (default: False). If you are preparing the data for decomposition method NMF, set this as True. If you are preparing the data for LSI/LSA, do not set this. ")
+
+    # group for output files
+    group_output = argparser_tfidf.add_argument_group( "Output arguments" )
+    add_output_group( group_output )
+    return
+
+def add_decomp_parser( subparsers ):
+    argparser_decomp = subparsers.add_parser("decomp", help="Decompose data with LSI/LSA, NMF, or LDA (PCA will be added later)")
+    # group for input files
+    group_input = argparser_decomp.add_argument_group( "Input files arguments" )
+    group_input.add_argument( "-a", "--anndata", dest = "afile", type = str, required = True,
+                              help = "An .h5ad file with count table stored in AnnData object. REQUIRED." )
+
+    # group for decomp options
+    group_options = argparser_decomp.add_argument_group( "Options for decomposition" )
+
+    group_options.add_argument( "-m", "--method", dest = "method", type = str, required=True,
+                                choices = ("lsi", "lsa", "lda", "nmf", "pca"),
+                                help = "")
+
+    group_options.add_argument( "-n", "--n-components", dest = "n_components", type = int, required=True,
+                                help = "")
+    group_options.add_argument( "--min-variance", dest = "variance_threshold", type = float, default = 0,
+                                help = "(default:0)")
+    # group for output files
+    group_output = argparser_decomp.add_argument_group( "Output arguments" )
+    add_output_group( group_output )  
+    return
+
+def add_umap_parser( subparsers ):
+    argparser_umap = subparsers.add_parser("umap", help="")
+    return
+
+def add_cluster_parser( subparsers ):
+    argparser_cluster = subparsers.add_parser("cluster", help="")
+    return
+
+def add_diff_parser( subparsers ):
+    argparser_diff = subparsers.add_parser("diff", help="")
+    return
+
+def add_view_parser( subparsers ):
+    argparser_view = subparsers.add_parser("view", help="")
+    return
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupted me! ;-) Bye!\n")
+        sys.exit(0)
