@@ -1,4 +1,4 @@
-# Time-stamp: <2020-01-02 16:49:34 taoliu>
+# Time-stamp: <2020-01-02 17:35:32 taoliu>
 
 """Description: SCKMER decomp cmd
 
@@ -76,7 +76,8 @@ def run( args ):
     #sc.pl.paga(adata, plot=False)  # remove `plot=False` if you want to see the coarse-grained graph
     #sc.tl.umap(adata, init_pos='paga')
     #sc.pl.umap(adata, color="leiden")
-
+    #m = umap.UMAP(metric="euclidean", random_state=40, n_neighbors=50, min_dist=0.0, n_components=2).fit(adata.obsm['X_'+method])
+    #adata.obsm['X_umap'] = m.embedding_
     # write h5a
     adata.write_h5ad( filename = out_fname )    
 
