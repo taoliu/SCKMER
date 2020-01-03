@@ -224,17 +224,16 @@ def add_umap_parser( subparsers ):
     group_input.add_argument( "-a", "--anndata", dest = "afile", type = str, required = True,
                               help = "An .h5ad file with count table stored in AnnData object. REQUIRED." )
 
-    # group for decomp options
-    group_options = argparser_umap.add_argument_group( "Options for decomposition" )
-
-    group_options.add_argument( "-m", "--method", dest = "method", type = str, required=True,
-                                choices = ("lsi", "lsa", "lda", "nmf", "pca"),
-                                help = "")
-
-    group_options.add_argument( "-n", "--n-components", dest = "n_components", type = int, required=True,
-                                help = "")
-    group_options.add_argument( "--min-variance", dest = "variance_threshold", type = float, default = 0,
-                                help = "(default:0)")
+    # group for UMAP options
+    group_options = argparser_umap.add_argument_group( "Options for UMAP" )
+    group_options.add_argument( "-d", "--data-source", dest = "data_source", type = str, default = "X",
+                                help = "Specify the data to be clustered. The original data in AnnData object is 'X' (default: X). If you did decomposition/dimension reduction before with 'decomp' subcommand, and plan to run UMAP on deconvolved data, specify 'method' and the data to be clustered will be taken from AnnData.obsm['X_method']. For example, you can specify 'lsa' for decomposed data from LSA/LSI method; 'nmf' for data from NMF method; 'lda' for data from LDA method.")
+    group_options.add_argument( "--n-neighbors", dest = "n_neighbors", type = int, default = 15,
+                                help = " (default:15)")
+    group_options.add_argument( "--min-dist", dest = "min_dist", type = float, default = 0.0,
+                                help = " (default:0.0)")    
+    group_options.add_argument( "--random-state", dest = "random_state", type = int, default = 40,
+                                help = "Random seed (default:40)")
     # group for output files
     group_output = argparser_umap.add_argument_group( "Output arguments" )
     add_output_group( group_output )  

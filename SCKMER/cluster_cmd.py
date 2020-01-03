@@ -1,4 +1,4 @@
-# Time-stamp: <2020-01-03 15:29:10 taoliu>
+# Time-stamp: <2020-01-03 15:49:41 taoliu>
 
 """Description: SCKMER cluster cmd
 
@@ -48,6 +48,8 @@ def run( args ):
     n_neighbors = options.n_neighbors
 
     if data_source != "X":
+        if data_source == "lsi":
+            data_source = "lsa"        
         data_source = "X_" + data_source
 
     random_state = options.random_state
