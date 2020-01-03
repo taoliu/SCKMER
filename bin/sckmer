@@ -279,8 +279,22 @@ def add_diff_parser( subparsers ):
 
 def add_view_parser( subparsers ):
     argparser_view = subparsers.add_parser("view", help="")
-    return
 
+    # group for input files
+    group_input = argparser_view.add_argument_group( "Input files arguments" )
+    group_input.add_argument( "-a", "--anndata", dest = "afile", type = str, required = True,
+                              help = "An .h5ad file with count table stored in AnnData object. REQUIRED." )
+
+    # group for decomp options
+    group_options = argparser_view.add_argument_group( "Options for view" )
+
+    group_options.add_argument( "-k", dest = "keys", type = str, nargs = "*",
+                                help = "")
+
+    # group for output files
+    group_output = argparser_view.add_argument_group( "Output arguments" )
+    add_output_group( group_output )  
+    return
 
 if __name__ == '__main__':
     try:

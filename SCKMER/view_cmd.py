@@ -1,4 +1,4 @@
-# Time-stamp: <2019-12-31 15:19:35 taoliu>
+# Time-stamp: <2020-01-03 16:19:52 taoliu>
 
 """Description: SCKMER view cmd
 
@@ -14,8 +14,9 @@ the distribution).
 import os
 import sys
 import logging
-from time import strftime
-import tempfile
+
+from anndata import read_h5ad
+import scanpy as sc
 
 # ------------------------------------
 # own python modules
@@ -36,4 +37,17 @@ def run( args ):
     debug = options.debug
     error = options.error
 
+     # take options
+    h5ad_fname = options.afile   
+    out_fname = options.ofile
+
+    extra_keys = options.keys
     
+    # read h5ad
+    adata = read_h5ad( h5ad_fname )
+    if extra_keys:
+        sc.pl.umap(adata, color=extra_keys, save=out_fname, show=False)
+    else:
+        sc.pl.umap(adata, save=out_fname, show=False)
+
+    return
