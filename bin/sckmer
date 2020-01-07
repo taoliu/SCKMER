@@ -289,7 +289,7 @@ def add_view_parser( subparsers ):
     group_options = argparser_view.add_argument_group( "Options for view" )
 
     group_options.add_argument( "-k", dest = "keys", type = str, nargs = "*",
-                                help = "")
+                                help = "the key to be used with umap plot. It can be anything in .obs such as 'celltype' or 'leiden'")
 
     # group for output files
     group_output = argparser_view.add_argument_group( "Output arguments" )

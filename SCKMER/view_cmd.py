@@ -1,4 +1,4 @@
-# Time-stamp: <2020-01-03 16:19:52 taoliu>
+# Time-stamp: <2020-01-03 16:25:05 taoliu>
 
 """Description: SCKMER view cmd
 
@@ -14,6 +14,8 @@ the distribution).
 import os
 import sys
 import logging
+
+import matplotlib; matplotlib.use('Agg')
 
 from anndata import read_h5ad
 import scanpy as sc

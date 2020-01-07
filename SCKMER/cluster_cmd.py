@@ -110,9 +110,3 @@ def add_graph ( adata, source, n_neighbors ):
     sc.pp.neighbors( adata, use_rep = source, n_neighbors = n_neighbors, metric = 'euclidean' )
     return adata
 
-#sc.tl.paga(adata)
-#sc.pl.paga(adata, plot=False)  # remove `plot=False` if you want to see the coarse-grained graph
-#sc.tl.umap(adata, init_pos='paga')
-#sc.pl.umap(adata, color="leiden")
-#m = umap.UMAP(metric="euclidean", random_state=40, n_neighbors=50, min_dist=0.0, n_components=2).fit(adata.obsm['X_'+method])
-#adata.obsm['X_umap'] = m.embedding_
