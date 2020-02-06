@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+
+import scipy
+import numpy as np
+import sys
+import os
+import io
+from scipy.sparse import dok_matrix
+import argparse as ap
+
+def prepare_argparser ():
+    description = "%(prog)s -- Load counts into scipy sparsematrix"
+    epilog = "For command line options of each command, type: %(prog)s COMMAND -h"
+    argparser = ap.ArgumentParser( description = description, epilog = epilog ) #, usage = usage )
+    argparser.add_argument("--version", action="version", version="%(prog)s 0.1")
+    argparser.add_argument( "-c", dest = "cdir", type = str, required = True,
+                            help = "The directory for count result from Jellyfish. REQUIRED." )
+    argparser.add_argument( "-b", dest = "validbarcode", type = str, required = True,
+                            help = "The file with valid barcode from preprocessing pipeline such as n.kmers.seqs.kept.txt. REQUIRED." )
+    argparser.add_argument( "-k", dest = "uniqkmer", type = str, required = True,
+                            help = "The uniq kmer file from preprocessing pipeline such as uniq.kmer.txt. REQUIRED." )
+    argparser.add_argument( "-o", dest = "ofile", type = str, required = True,
+                            help = "The output file in npz format for sparse matrix of counts. REQUIRED." )
+
+    return argparser
+
+def main():
+    # Parse options...
+    argparser = prepare_argparser()
+    args = argparser.parse_args()
+
+    count_dir = args.cdir
+    validbarcode_f = args.validbarcode
+    uniqkmer_f = args.uniqkmer
+    npz_ofile = args.ofile
+
+    kmer_index = {}
+    valid_bc = []
+
+    with open(uniqkmer_f,"rt") as kmerfile:
+        nkmer = 0
+        kmerfile.readline()     # skip first line
+        for l in kmerfile:
+            kmer = l.rstrip()
+            kmer_index[ kmer ] = nkmer
+            nkmer += 1
+
+    with open(validbarcode_f,"rt") as fhd:
+        for l in fhd:
+            bc = l.rstrip().split()[0]
+            valid_bc.append( bc )
+
+    S = dok_matrix((len(valid_bc), nkmer), dtype=np.int32)
+    # barcode as row, kmer as column
+
+    for i in range( len(valid_bc) ):
+        # i will be used as row index
+        # each barcode
+        barcode = valid_bc[ i ]
+        # get count file
+        countfilename = os.path.join( f"{count_dir}",f"{barcode}.kmer.txt")
+        with open( countfilename, "r" ) as ctfile:
+            for l in ctfile:
+                ( kmer, count ) = l.rstrip().split("\t")
+                if kmer in kmer_index:
+                    # get column index
+                    j = kmer_index[ kmer ]
+                    S[ i, j ] = int(count)
+
+    S = S.tocsr()
+    scipy.sparse.save_npz( npz_ofile, S, compressed=True )
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupted me! ;-) Bye!\n")
+        sys.exit(0)

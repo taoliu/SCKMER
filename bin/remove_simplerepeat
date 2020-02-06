@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+import argparse as ap
+import os
+import sys
+
+def prepare_argparser ():
+    description = "%(prog)s -- Remove repetitive kmers"
+    epilog = "For command line options of each command, type: %(prog)s COMMAND -h"
+    argparser = ap.ArgumentParser( description = description, epilog = epilog ) #, usage = usage )
+    argparser.add_argument("--version", action="version", version="%(prog)s 0.1")
+    argparser.add_argument( "-i", dest = "ifile", type = str, required = True,
+                            help = "The uniq.kmer.txt file from preprocessing pipeline. REQUIRED." )
+    argparser.add_argument( "--max-repl", dest = "max_rep_l", type = int, default = 4,
+                            help = "The maximum length of repetive segment in bp to be searched. To set it larger will remove kmer with longer repeat. Default:4")
+    argparser.add_argument( "--min-diffbp", dest = "min_diff_bp", type = int, default = 2,
+                            help = "The minimum number of different nucleotide allowed to keep. To avoid those kmers mostly with a single type of nucleotide. Default:2")
+    argparser.add_argument( "--max-polymer", dest = "max_polymer_len", type = int, default = 10,
+                            help = "The maximum length of (A/T/C/G)n to be searched. When found, the kmer will be excluded. Default:4")
+    return argparser
+
+def is_simplerepeat ( kmer, max_rep_l = 4 ):
+    l = len(kmer)
+    for simple_repeat_l in range( 1, max_rep_l + 1 ):
+        is_repetitive = True
+        repeat = kmer[:simple_repeat_l]
+        for check_s in range( simple_repeat_l, l - l % simple_repeat_l, simple_repeat_l ):
+            chunk = kmer[ check_s: check_s+simple_repeat_l ]
+            is_repetitive = is_repetitive and (repeat == kmer[ check_s: check_s+simple_repeat_l ])
+        # check the last chunk
+        chunk = kmer[ check_s + simple_repeat_l: ]
+        is_repetitive = is_repetitive and ( repeat[ : len(chunk) ] == chunk )
+        if is_repetitive:
+            return True
+    return False
+
+def is_too_simple ( kmer, min_diff_bp = 2 ):
+    nA = kmer.count("A")
+    nC = kmer.count("C")
+    nT = kmer.count("T")
+    nG = kmer.count("G")
+    l = len( kmer ) - min_diff_bp
+    if nA >= l or nC >= l or nT >= l or nG >= l:
+        return True
+    else:
+        return False
+    
+def has_same_bp ( kmer, max_polymer_len = 10 ):
+    A = "A" * max_polymer_len
+    C = "C" * max_polymer_len
+    T = "T" * max_polymer_len
+    G = "G" * max_polymer_len
+    if kmer.find(A) != -1 or kmer.find(C) != -1 or kmer.find(T) != -1 or kmer.find(G) != -1:
+        return True
+    else:
+        return False
+
+def main():
+    # Parse options...
+    argparser = prepare_argparser()
+    args = argparser.parse_args()
+
+    ifile = args.ifile
+    max_rep_l = args.max_rep_l
+    min_diff_bp = args.min_diff_bp
+    max_polymer_len = args.max_polymer_len
+    
+    with open(ifile, "rt") as fhd:
+        l = fhd.readline()
+        print (l.rstrip())
+        for l in fhd:
+            kmer = l.rstrip()
+            if is_too_simple ( kmer, min_diff_bp = min_diff_bp ):
+                #print (f"{kmer} is too simple!")
+                continue 
+            elif is_simplerepeat ( kmer, max_rep_l = max_rep_l ):
+                #print (f"{kmer} contains simple repeats!")
+                continue
+            elif has_same_bp ( kmer, max_polymer_len = max_polymer_len ):
+                #print (f"{kmer} contains same bps!")
+                continue            
+            else:
+                #print (f"{kmer} pass test!")
+                print( kmer )
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupted me! ;-) Bye!\n")
+        sys.exit(0)
+

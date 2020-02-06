@@ -128,11 +128,11 @@ def add_anndata_parser( subparsers ):
     
     # group for input files
     group_input = argparser_anndata.add_argument_group( "Input files arguments" )
-    group_input.add_argument( "-c", "--count-table", dest = "cfile", type = str, required = True,
+    group_input.add_argument( "-c", "--count-table", dest = "cfile", type = str, required = True, nargs = "+",
                               help = "Count table file with sparse matrix in NPZ format (scipy sparseMatrix). REQUIRED." )
-    group_input.add_argument( "-b", "--barcode-file", dest = "bfile", type = str, required = True,
+    group_input.add_argument( "-b", "--barcode-file", dest = "bfile", type = str, required = True, nargs = "+",
                               help = "Barcode file with annotations. # of rows must be the same as # of rows in count table file. REQUIRED." )
-    group_input.add_argument( "-k", "--kmer-file", dest = "kfile", type = str, required = True,
+    group_input.add_argument( "-k", "--kmer-file", dest = "kfile", type = str, required = True, nargs = "+",
                               help = "k-mer file with annotations. # of rows must be the same as # of columns in count table file. REQUIRED." )
     
     # group for output files

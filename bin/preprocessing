@@ -1,0 +1,62 @@
+#!/bin/bash
+
+if [ $# -lt 2 ];then
+    echo "Preprocessing pipeline: take fasta and count, filter out low quality kmer and barcode, build sparsematrix file."
+    echo "Need 2 parameters! <LABEL1 as 0W> <LABEL2 as 11mer>"
+    exit
+fi
+
+
+# ---- config ----
+
+LABEL1=$1
+LABEL2=$2
+
+# ---- code ----
+
+
+FASTADIR=${LABEL1}_barcode_fasta
+COUNTDIR=${LABEL1}_${LABEL2}_barcode_count
+
+FINALBARCODELABEL=${LABEL1}.${LABEL2}.barcode.label.selected.txt
+FINALCOUNTTABLE=${LABEL1}.${LABEL2}.count.table.selected.npz
+
+mkdir ${COUNTDIR}
+mv ${FASTADIR}/*.kmer.txt ${COUNTDIR}
+
+for i in `ls ${FASTADIR}/*.fasta`;do n=`basename $i`; n=${n/.fasta/}; l=`grep -c \> $i`; echo $n $l;done > ${LABEL1}.${LABEL2}.n.seq.txt
+
+cd ${COUNTDIR}
+
+wc -l *.txt  | grep -v total| perl -pe 's/^\s+(\d+)\s+(\S+?)\.kmer.txt$/$2\t$1/' > ../${LABEL1}.${LABEL2}.n.kmer.txt
+
+cd ..
+
+echo -e "barcode\tn.kmers\tn.seqs" > ${LABEL1}.${LABEL2}.n.kmers.seqs.txt
+
+perl -e 'open(K,"<$ARGV[0]");open(S,"<$ARGV[1]");while(<K>){chomp;@_=split;$k{$_[0]}=$_[1]}while(<S>){chomp;@_=split;$s{$_[0]}=$_[1]}close(K);close(S);foreach (keys%k){print $_,"\t",$k{$_},"\t",$s{$_},"\n"}' ${LABEL1}.${LABEL2}.n.kmer.txt ${LABEL1}.${LABEL2}.n.seq.txt >> ${LABEL1}.${LABEL2}.n.kmers.seqs.txt
+
+#Rscript plot.R
+
+perl -ne 'chomp;@_=split;if($_[2]>=20000 && $_[2]<=150000){ print $_,"\n"}' ${LABEL1}.${LABEL2}.n.kmers.seqs.txt > ${LABEL1}.${LABEL2}.n.kmers.seqs.kept.txt
+
+rm -f ${LABEL1}.${LABEL2}.uniq.kmer.tmp
+
+touch ${LABEL1}.${LABEL2}.uniq.kmer.tmp
+
+cut -f 1 ${LABEL1}.${LABEL2}.n.kmers.seqs.kept.txt| while read bc; do
+    cut -f 1 ${COUNTDIR}/${bc}.kmer.txt >> ${LABEL1}.${LABEL2}.uniq.kmer.tmp;
+done
+
+echo "kmer" > ${LABEL1}.${LABEL2}.uniq.kmer.txt
+
+sort -u ${LABEL1}.${LABEL2}.uniq.kmer.tmp >> ${LABEL1}.${LABEL2}.uniq.kmer.txt
+
+rm -f ${LABEL1}.${LABEL2}.uniq.kmer.tmp
+
+./remove_simplerepeat.py -i ${LABEL1}.${LABEL2}.uniq.kmer.txt > ${LABEL1}.${LABEL2}.uniq.kmer.filtered.txt
+
+./build_sp.py -c ${COUNTDIR} -k ${LABEL1}.${LABEL2}.uniq.kmer.filtered.txt -b ${LABEL1}.${LABEL2}.n.kmers.seqs.kept.txt -o ${FINALCOUNTTABLE}
+
+echo -e "barcode\tcelltype" > ${FINALBARCODELABEL}
+cut -f 1 ${LABEL1}.${LABEL2}.n.kmers.seqs.kept.txt | awk -v OFS="\t" -v A=${LABEL1} '{print $1,A}' >> ${FINALBARCODELABEL}
