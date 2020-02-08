@@ -1,4 +1,4 @@
-# Time-stamp: <2020-01-03 16:25:05 taoliu>
+# Time-stamp: <2020-02-06 11:28:09 taoliu>
 
 """Description: SCKMER view cmd
 
@@ -41,15 +41,15 @@ def run( args ):
 
      # take options
     h5ad_fname = options.afile   
-    out_fname = options.ofile
+    out_dname = options.odir
 
     extra_keys = options.keys
     
     # read h5ad
     adata = read_h5ad( h5ad_fname )
     if extra_keys:
-        sc.pl.umap(adata, color=extra_keys, save=out_fname, show=False)
+        sc.pl.umap(adata, color=extra_keys, save=out_dname, show=False)
     else:
-        sc.pl.umap(adata, save=out_fname, show=False)
+        sc.pl.umap(adata, save=out_dname, show=False)
 
     return

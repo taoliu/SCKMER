@@ -13,15 +13,16 @@ def prepare_argparser ():
     epilog = "For command line options of each command, type: %(prog)s COMMAND -h"
     argparser = ap.ArgumentParser( description = description, epilog = epilog ) #, usage = usage )
     argparser.add_argument("--version", action="version", version="%(prog)s 0.1")
-    argparser.add_argument( "-c", dest = "cdir", type = str, required = True,
+    argparser.add_argument( "-c", dest = "cdirs", type = str, required = True, nargs = "+",
                             help = "The directory for count result from Jellyfish. REQUIRED." )
-    argparser.add_argument( "-b", dest = "validbarcode", type = str, required = True,
+    argparser.add_argument( "-b", dest = "validbarcodes", type = str, required = True, nargs = "+",
                             help = "The file with valid barcode from preprocessing pipeline such as n.kmers.seqs.kept.txt. REQUIRED." )
-    argparser.add_argument( "-k", dest = "uniqkmer", type = str, required = True,
+    argparser.add_argument( "-k", dest = "uniqkmers", type = str, required = True, nargs = "+",
                             help = "The uniq kmer file from preprocessing pipeline such as uniq.kmer.txt. REQUIRED." )
-    argparser.add_argument( "-o", dest = "ofile", type = str, required = True,
-                            help = "The output file in npz format for sparse matrix of counts. REQUIRED." )
-
+    argparser.add_argument( "-l", dest = "labels", type = str, default = "NA", nargs = "+",
+                            help = "Label for each sample to be merged. REQUIRED only if multiple count tables have to be merged." )
+    argparser.add_argument( "-o", dest = "ofile", type = str, required = True, nargs = 3,
+                            help = "Exactly three output files including the count table in npz format, the kmer file, and the barcode file. REQUIRED." )
     return argparser
 
 def main():
@@ -29,37 +30,62 @@ def main():
     argparser = prepare_argparser()
     args = argparser.parse_args()
 
-    count_dir = args.cdir
-    validbarcode_f = args.validbarcode
-    uniqkmer_f = args.uniqkmer
-    npz_ofile = args.ofile
+    ( npz_ofile, kmer_ofile, barcode_ofile ) = args.ofile
 
     kmer_index = {}
+    kmers = []
+    valid_bc_index = {}
     valid_bc = []
 
-    with open(uniqkmer_f,"rt") as kmerfile:
-        nkmer = 0
-        kmerfile.readline()     # skip first line
-        for l in kmerfile:
-            kmer = l.rstrip()
-            kmer_index[ kmer ] = nkmer
-            nkmer += 1
+    # if merge, check consistent number of input
+    if len(args.cdirs) > 1 or len(args.validbarcodes) > 1 or len(args.cdirs) > 1 or len(args.labels) > 1:
+        assert len(args.uniqkmers) == len(args.validbarcodes)
+        assert len(args.uniqkmers) == len(args.cdirs)
+        assert len(args.uniqkmers) == len(args.labels) 
 
-    with open(validbarcode_f,"rt") as fhd:
-        for l in fhd:
-            bc = l.rstrip().split()[0]
-            valid_bc.append( bc )
+    for i in range( len(args.uniqkmers) ):
+        uniqkmer_f = args.uniqkmers[ i ]
+        with open(uniqkmer_f,"rt") as kmerfile:
+            kmerfile.readline()     # skip first line
+            for l in kmerfile:
+                kmer = l.rstrip()
+                kmer_index[ kmer ] = 0
 
-    S = dok_matrix((len(valid_bc), nkmer), dtype=np.int32)
+    kmers = list( kmer_index.keys() )
+    for i in  range( len(kmers) ):
+        kmer_index[ kmer ] = i
+
+    with open(kmer_ofile, "wt") as fhd:
+        fhd.write("kmer\n")
+        for kmer in kmers:
+            fhd.write( kmer + "\n" )
+        
+    for i in range( len(args.validbarcodes ) ):
+        validbarcode_f = args.validbarcode[ i ]
+        with open(validbarcode_f,"rt") as fhd:
+            for l in fhd:
+                bc = args.labels[ i ] + "#" + l.rstrip().split()[0]
+                valid_bc_index[ bc ] = i
+                valid_bc.append( bc )
+
+    with open(barcode_ofile, "wt") as fhd:
+        fhd.write("barcode\tsample\n")
+        for bc in valid_bc:
+            l = args.labels[ valid_bc_index[ bc ] ]
+            fhd.write( bc + "\t" + l + "\n" )
+                
+    S = dok_matrix((len(valid_bc), len(kmers) ), dtype=np.int32)
     # barcode as row, kmer as column
 
     for i in range( len(valid_bc) ):
         # i will be used as row index
         # each barcode
         barcode = valid_bc[ i ]
+        cdir_name = args.cdirs[ valid_bc_index[ barcode ] ]
+        cf_name = barcode.split("#")[1] + ".kmer.txt"
         # get count file
-        countfilename = os.path.join( f"{count_dir}",f"{barcode}.kmer.txt")
-        with open( countfilename, "r" ) as ctfile:
+        countfilename = os.path.join( f"{cdir_name}",f"{cf_name}")
+        with open( countfilename, "rt" ) as ctfile:
             for l in ctfile:
                 ( kmer, count ) = l.rstrip().split("\t")
                 if kmer in kmer_index:
