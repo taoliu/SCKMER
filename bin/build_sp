@@ -63,6 +63,7 @@ def main():
     for i in range( len(args.validbarcodes ) ):
         validbarcode_f = args.validbarcodes[ i ]
         with open(validbarcode_f,"rt") as fhd:
+            fhd.readline()
             for l in fhd:
                 bc = args.labels[ i ] + "#" + l.rstrip().split()[0]
                 valid_bc_index[ bc ] = i
