@@ -53,7 +53,7 @@ def main():
 
     kmers = list( kmer_index.keys() )
     for i in  range( len(kmers) ):
-        kmer_index[ kmer ] = i
+        kmer_index[ kmers[i] ] = i
 
     with open(kmer_ofile, "wt") as fhd:
         fhd.write("kmer\n")
