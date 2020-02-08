@@ -124,8 +124,8 @@ def add_output_group ( parser ):
                          help = "Set verbose level of runtime message. 0: only show critical message, 1: show additional warning message, 2: show process information, 3: show debug messages. DEFAULT:2" )
 
 def add_output_dir_group ( parser ):
-    parser.add_argument( "-o", "--odir", dest = "odir", type = str, required = True,
-                         help = "Directory where the images will be saved to. A new directory will be created." )
+    parser.add_argument( "-o", dest = "output", type = str, required = True,
+                         help = "Output will be in figures/ directory with the given OUTPUT as prefix." )
     parser.add_argument( "--verbose", dest = "verbose", type = int, default = 2,
                          help = "Set verbose level of runtime message. 0: only show critical message, 1: show additional warning message, 2: show process information, 3: show debug messages. DEFAULT:2" )
     

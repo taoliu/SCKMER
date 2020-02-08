@@ -61,7 +61,7 @@ def main():
             fhd.write( kmer + "\n" )
         
     for i in range( len(args.validbarcodes ) ):
-        validbarcode_f = args.validbarcode[ i ]
+        validbarcode_f = args.validbarcodes[ i ]
         with open(validbarcode_f,"rt") as fhd:
             for l in fhd:
                 bc = args.labels[ i ] + "#" + l.rstrip().split()[0]

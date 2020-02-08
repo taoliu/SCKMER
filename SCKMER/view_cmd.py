@@ -41,15 +41,15 @@ def run( args ):
 
      # take options
     h5ad_fname = options.afile   
-    out_dname = options.odir
+    out_name = options.output
 
     extra_keys = options.keys
     
     # read h5ad
     adata = read_h5ad( h5ad_fname )
     if extra_keys:
-        sc.pl.umap(adata, color=extra_keys, save=out_dname, show=False)
+        sc.pl.umap(adata, color=extra_keys, save=out_name, show=False)
     else:
-        sc.pl.umap(adata, save=out_dname, show=False)
+        sc.pl.umap(adata, save=out_name, show=False)
 
     return
