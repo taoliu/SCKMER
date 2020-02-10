@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Time-stamp: <2019-12-31 16:05:17 taoliu>
+# Time-stamp: <2020-02-10 15:10:29 taoliu>
 
 """Description: 
 
@@ -30,7 +30,7 @@ def main():
           url='http://github.com/taoliu/genericCTA/',
           package_dir={'SCKMER' : 'SCKMER'},
           packages=['SCKMER'],
-          scripts=['bin/sckmer'],
+          scripts=['bin/sckmer','bin/build_sp','bin/preprocessing','bin/remove_simplerepeat','bin/generate_jellyfish_script'],
           classifiers=[
               'Development Status :: 3 - Alpha',
               'Environment :: Console',
