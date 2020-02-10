@@ -1,24 +1,20 @@
 #!/bin/bash
 
-if [ $# -lt 2 ];then
+if [ $# -lt 4 ];then
     echo "Preprocessing pipeline: take fasta and count, filter out low quality kmer and barcode, build sparsematrix file."
-    echo "Need 2 parameters! <LABEL1 as 0W> <LABEL2 as 11mer>"
+    echo "Need 4 parameters! <FASTA DIR> <COUNT DIR> <LABEL1 as 0W> <LABEL2 as 11mer>"
     exit
 fi
 
 
 # ---- config ----
 
-LABEL1=$1
-LABEL2=$2
+FASTADIR=$1
+COUNTDIR=$2
+LABEL1=$3
+LABEL2=$4
 
 # ---- code ----
-
-FASTADIR=${LABEL1}_barcode_fasta
-COUNTDIR=${LABEL1}_${LABEL2}_barcode_count
-
-#FINALBARCODELABEL=${LABEL1}.${LABEL2}.barcode.label.selected.txt
-#FINALCOUNTTABLE=${LABEL1}.${LABEL2}.count.table.selected.npz
 
 mkdir ${COUNTDIR}
 mv ${FASTADIR}/*.kmer.txt ${COUNTDIR}
