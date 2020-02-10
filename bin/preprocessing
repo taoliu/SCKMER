@@ -14,12 +14,11 @@ LABEL2=$2
 
 # ---- code ----
 
-
 FASTADIR=${LABEL1}_barcode_fasta
 COUNTDIR=${LABEL1}_${LABEL2}_barcode_count
 
-FINALBARCODELABEL=${LABEL1}.${LABEL2}.barcode.label.selected.txt
-FINALCOUNTTABLE=${LABEL1}.${LABEL2}.count.table.selected.npz
+#FINALBARCODELABEL=${LABEL1}.${LABEL2}.barcode.label.selected.txt
+#FINALCOUNTTABLE=${LABEL1}.${LABEL2}.count.table.selected.npz
 
 mkdir ${COUNTDIR}
 mv ${FASTADIR}/*.kmer.txt ${COUNTDIR}
@@ -56,7 +55,5 @@ rm -f ${LABEL1}.${LABEL2}.uniq.kmer.tmp
 
 remove_simplerepeat -i ${LABEL1}.${LABEL2}.uniq.kmer.txt > ${LABEL1}.${LABEL2}.uniq.kmer.filtered.txt
 
-#./build_sp.py -c ${COUNTDIR} -k ${LABEL1}.${LABEL2}.uniq.kmer.filtered.txt -b ${LABEL1}.${LABEL2}.n.kmers.seqs.kept.txt -o ${FINALCOUNTTABLE}#
-#
-#echo -e "barcode\tcelltype" > ${FINALBARCODELABEL}
-#cut -f 1 ${LABEL1}.${LABEL2}.n.kmers.seqs.kept.txt | awk -v OFS="\t" -v A=${LABEL1} '{print $1,A}' >> ${FINALBARCODELABEL}
+echo "Please use ${COUNTDIR} ${LABEL1}.${LABEL2}.uniq.kmer.filtered.txt and ${LABEL1}.${LABEL2}.n.kmers.seqs.kept.txt with build_sp to build the sparsematrix file"
+
