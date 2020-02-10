@@ -16,6 +16,7 @@ import sys
 import logging
 
 from anndata import read_h5ad
+from sklearn.feature_selection import SelectKBest
 
 # ------------------------------------
 # own python modules
@@ -76,7 +77,11 @@ def run( args ):
         adata = adata[ adata.obs.n_counts >= min_counts, : ]
     if min_cells != 0:
         adata = adata[ :, adata.var.n_cells >= min_cells ]
-        
+
+    # top top_variable_kmers kmers
+    #S = adata.X
+    #S = SelectKBest(chi2, k=top_variable_kmers).fit_transform(S)
+    
     # write h5a
     adata.write_h5ad( filename = out_fname )
 

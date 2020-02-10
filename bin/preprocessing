@@ -54,9 +54,9 @@ sort -u ${LABEL1}.${LABEL2}.uniq.kmer.tmp >> ${LABEL1}.${LABEL2}.uniq.kmer.txt
 
 rm -f ${LABEL1}.${LABEL2}.uniq.kmer.tmp
 
-./remove_simplerepeat.py -i ${LABEL1}.${LABEL2}.uniq.kmer.txt > ${LABEL1}.${LABEL2}.uniq.kmer.filtered.txt
+remove_simplerepeat -i ${LABEL1}.${LABEL2}.uniq.kmer.txt > ${LABEL1}.${LABEL2}.uniq.kmer.filtered.txt
 
-./build_sp.py -c ${COUNTDIR} -k ${LABEL1}.${LABEL2}.uniq.kmer.filtered.txt -b ${LABEL1}.${LABEL2}.n.kmers.seqs.kept.txt -o ${FINALCOUNTTABLE}
-
-echo -e "barcode\tcelltype" > ${FINALBARCODELABEL}
-cut -f 1 ${LABEL1}.${LABEL2}.n.kmers.seqs.kept.txt | awk -v OFS="\t" -v A=${LABEL1} '{print $1,A}' >> ${FINALBARCODELABEL}
+#./build_sp.py -c ${COUNTDIR} -k ${LABEL1}.${LABEL2}.uniq.kmer.filtered.txt -b ${LABEL1}.${LABEL2}.n.kmers.seqs.kept.txt -o ${FINALCOUNTTABLE}#
+#
+#echo -e "barcode\tcelltype" > ${FINALBARCODELABEL}
+#cut -f 1 ${LABEL1}.${LABEL2}.n.kmers.seqs.kept.txt | awk -v OFS="\t" -v A=${LABEL1} '{print $1,A}' >> ${FINALBARCODELABEL}

@@ -158,15 +158,15 @@ def add_filter_parser( subparsers ):
     group_options = argparser_filter.add_argument_group( "Options for filtering" )
     group_options.add_argument( "-K", "--max-nkmers", dest = "max_kmers", type = int,
                                 help = "Maximum number of kmers from a cell/barcode (default:NA)")
-    group_options.add_argument( "-C", "--max-ncounts", dest = "max_counts", type = int,
-                                help = "Maximum number of counts from a cell/barcode (default:NA)")
-    group_options.add_argument( "-E", "--max-ncells", dest = "max_cells", type = int,
-                                help = "Minimum number of cells that a kmer can be found (default:NA)")    
     group_options.add_argument( "-k", "--min-nkmers", dest = "min_kmers", type = int, default = 0,
                                 help = "Minimum number of kmers from a cell/barcode (default:0)")
+    group_options.add_argument( "-C", "--max-ncounts", dest = "max_counts", type = int,
+                                help = "Maximum number of counts from a cell/barcode (default:NA)")
     group_options.add_argument( "-c", "--min-ncounts", dest = "min_counts", type = int, default = 0,
                                 help = "Minimum number of counts from a cell/barcode (default:0)")
-    group_options.add_argument( "-e", "--min-ncells", dest = "min_cells", type = int, default = 0,
+    group_options.add_argument( "-E", "--max-ncells", dest = "max_cells", type = int,
+                                help = "Minimum number of cells that a kmer can be found (default:NA)")    
+    group_options.add_argument( "-e", "--min-ncells", dest = "min_cells", type = int,
                                 help = "Minimum number of cells that a kmer can be found (default:0)")
     # group for output files
     group_output = argparser_filter.add_argument_group( "Output arguments" )
@@ -206,16 +206,14 @@ def add_decomp_parser( subparsers ):
     group_input = argparser_decomp.add_argument_group( "Input files arguments" )
     group_input.add_argument( "-a", "--anndata", dest = "afile", type = str, required = True,
                               help = "An .h5ad file with count table stored in AnnData object. REQUIRED." )
-
     # group for decomp options
     group_options = argparser_decomp.add_argument_group( "Options for decomposition" )
 
     group_options.add_argument( "-m", "--method", dest = "method", type = str, required=True,
                                 choices = ("lsi", "lsa", "lda", "nmf", "pca"),
-                                help = "")
-
+                                help = "Choose decomposition method from LSI/LSA, LDA, NMF and PCA")
     group_options.add_argument( "-n", "--n-components", dest = "n_components", type = int, required=True,
-                                help = "")
+                                help = "Number of components for decomposition method. The result will have N_COMPONENTS dimensions.")
     group_options.add_argument( "--min-variance", dest = "variance_threshold", type = float, default = 0,
                                 help = "(default:0)")
     # group for output files

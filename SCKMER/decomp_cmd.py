@@ -54,10 +54,12 @@ def run( args ):
     # read h5ad
     adata = read_h5ad( h5ad_fname )
 
-    # decomp
     S = adata.X
-    S = VarianceThreshold(variance_threshold).fit_transform(S)
 
+    # remove those kmers with "almost" exactly the same counts
+    S = VarianceThreshold(variance_threshold).fit_transform(S)
+    
+    # decomp
     if method == "lsa":
         (m, T) = lsa_decomp ( S, n_components )
     elif method == "lda":
