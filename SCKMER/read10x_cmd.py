@@ -38,6 +38,7 @@ def run( args ):
 
     # take options
     h5_fname = options.ifile
+    out_fname = options.ofile
     
     # read
     adata = sc.read_10x_h5( h5_fname )
