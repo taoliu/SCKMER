@@ -49,6 +49,10 @@ def main():
         # to compile anndata object from count table, barcode and kmer files
         from SCKMER.anndata_cmd import run
         run( args)
+    elif subcommand == "read10x":
+        # to compile anndata object from count table, barcode and kmer files
+        from SCKMER.read10x_cmd import run
+        run( args)
     elif subcommand == "filter":
         # filter cells and kmers with n_counts, n_kmers, n_cells
         from SCKMER.filter_cmd import run
@@ -94,7 +98,10 @@ def prepare_argparser ():
     # command for 'anndata'
     add_anndata_parser( subparsers )
 
-    # command for 'anndata'
+    # command for 'read10x'
+    add_read10x_parser( subparsers )    
+
+    # command for 'filter'
     add_filter_parser( subparsers )    
 
     # command for 'tfidf'
@@ -143,6 +150,18 @@ def add_anndata_parser( subparsers ):
     
     # group for output files
     group_output = argparser_anndata.add_argument_group( "Output arguments" )
+    add_output_group( group_output )
+    return
+
+def add_read10x_parser( subparsers ):
+    argparser_read10x = subparsers.add_parser("read10x", help="Compile an AnnData object from a 10x H5 file.")
+    
+    # group for input files
+    group_input = argparser_read10x.add_argument_group( "Input files arguments" )
+    group_input.add_argument( "-i", dest = "ifile", type = str, required = True,
+                              help = "10X H5 file. REQUIRED." )
+    # group for output files
+    group_output = argparser_read10x.add_argument_group( "Output arguments" )
     add_output_group( group_output )
     return
 
