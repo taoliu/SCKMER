@@ -15,6 +15,7 @@ import os
 import sys
 import logging
 import scanpy as sc
+import numpy as np
 
 # ------------------------------------
 # own python modules
