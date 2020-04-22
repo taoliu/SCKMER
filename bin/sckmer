@@ -180,7 +180,7 @@ def add_readloom_parser( subparsers ):
     group_input.add_argument( "-i", dest = "ifile", type = str, required = True,
                               help = "a loom file. REQUIRED." )
     # group for output files
-    group_output = argparser_read10x.add_argument_group( "Output arguments" )
+    group_output = argparser_readloom.add_argument_group( "Output arguments" )
     add_output_group( group_output )
     return
 
