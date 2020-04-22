@@ -53,6 +53,10 @@ def main():
         # to compile anndata object from count table, barcode and kmer files
         from SCKMER.read10x_cmd import run
         run( args)
+    elif subcommand == "readloom":
+        # to compile anndata object from count table, barcode and kmer files
+        from SCKMER.readloom_cmd import run
+        run( args)
     elif subcommand == "filter":
         # filter cells and kmers with n_counts, n_kmers, n_cells
         from SCKMER.filter_cmd import run
@@ -101,6 +105,9 @@ def prepare_argparser ():
     # command for 'read10x'
     add_read10x_parser( subparsers )    
 
+    # command for 'read10x'
+    add_readloom_parser( subparsers )    
+    
     # command for 'filter'
     add_filter_parser( subparsers )    
 
@@ -160,6 +167,18 @@ def add_read10x_parser( subparsers ):
     group_input = argparser_read10x.add_argument_group( "Input files arguments" )
     group_input.add_argument( "-i", dest = "ifile", type = str, required = True,
                               help = "10X H5 file. REQUIRED." )
+    # group for output files
+    group_output = argparser_read10x.add_argument_group( "Output arguments" )
+    add_output_group( group_output )
+    return
+
+def add_readloom_parser( subparsers ):
+    argparser_readloom = subparsers.add_parser("readloom", help="Compile an AnnData object from a loom file.")
+    
+    # group for input files
+    group_input = argparser_readloom.add_argument_group( "Input files arguments" )
+    group_input.add_argument( "-i", dest = "ifile", type = str, required = True,
+                              help = "a loom file. REQUIRED." )
     # group for output files
     group_output = argparser_read10x.add_argument_group( "Output arguments" )
     add_output_group( group_output )
